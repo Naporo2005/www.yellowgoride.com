@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>YellowRide — Server Dashboard</title>
+<title>YellowGo ride — Driver Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- EmailJS: sends an admin alert the moment a driver submits a daily-fee payment, even if no admin is logged in -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
@@ -142,9 +144,6 @@
   .modal-cancel-dismiss{background:none; border:1.5px solid var(--line); color:var(--text);}
 
   /* ============ DARK MODE ============ */
-  /* Fix: elements above use var(--text) for foreground so they flip correctly here.
-     --charcoal itself is intentionally left unchanged since it's also used as a
-     permanent dark background (topnav, chips, avatar) that should stay dark in both modes. */
   @media (prefers-color-scheme: dark){
     :root{ --text:#F1EDE0; }
     body{background:#0F0E0C;}
@@ -271,6 +270,31 @@
 
   <script src="supabase-config.js"></script>
   <script>
+    // ============ EMAILJS ADMIN ALERTS ============
+    // Sends you an email the moment a driver submits a daily-fee payment,
+    // even if you (the admin) aren't logged in anywhere to see it live.
+    const EMAILJS_PUBLIC_KEY  = "ifS-MZXz8HjB-GX-s";
+    const EMAILJS_SERVICE_ID  = "service_w7r49sa";
+    const EMAILJS_TEMPLATE_ID = "template_yggx8nr";
+    const ADMIN_ALERT_EMAIL   = "0555358325a@gmail.com";
+
+    if (window.emailjs) {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    }
+
+    function notifyAdmin(subject, message) {
+      if (!window.emailjs) {
+        console.warn("EmailJS not loaded — skipping admin alert:", subject);
+        return;
+      }
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: ADMIN_ALERT_EMAIL,
+        title: subject,
+        message: message
+      }).catch(err => console.error("EmailJS send failed:", err));
+    }
+    // ================================================
+
     let currentProfile = null;
     let driverRecord = null;
     let isOnline = false;
@@ -384,12 +408,8 @@
         return;
       }
       const targetState = !isOnline;
-      updateToggleUI(true); // show a "working on it" state immediately
+      updateToggleUI(true);
 
-      // Guard against a hung request: if this hasn't resolved in 8s, show an error
-      // instead of leaving the toggle stuck. A slow/dropped connection was the
-      // likely cause of "going online took 3 minutes" — this makes failures visible
-      // and fast instead of silent and slow.
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 8000)
       );
@@ -404,7 +424,7 @@
         if(isOnline) startLocationSharing(); else stopLocationSharing();
         renderIdleOrRequest();
       } catch(err){
-        updateToggleUI(); // revert to actual current state (isOnline unchanged)
+        updateToggleUI();
         alert('Could not update your status: ' + err.message);
       }
     });
@@ -438,10 +458,6 @@
           if(isOnline && !activeRideId && !incomingRideId) showIncomingRequest(payload.new);
         }).subscribe();
 
-      // Safety net: realtime WebSocket events can be missed if the connection is
-      // slow to establish or drops briefly (common on unstable mobile networks).
-      // This polls every 6s as a backup so a request never sits unnoticed for long,
-      // even if the live event never arrives.
       setInterval(pollForMissedRequests, 6000);
     }
 
@@ -667,6 +683,13 @@
       }
       statusEl.style.color = 'var(--green)';
       statusEl.textContent = 'Submitted! Waiting for admin approval.';
+
+      // Alert admin immediately — driver may pay while no admin is logged in to see it.
+      notifyAdmin(
+        `New daily fee payment — ${driverRecord?.driver_code || currentProfile.id}`,
+        `Driver ${currentProfile.full_name || ''} (${driverRecord?.driver_code || 'no code yet'}) submitted a payment of GH₵ ${amount.toFixed(2)} with reference "${reference}". Go review it in the admin dashboard.`
+      );
+
       await refreshFeeStatus();
       renderBanners();
       await loadFeeHistory();
