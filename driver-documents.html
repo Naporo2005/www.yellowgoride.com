@@ -3,11 +3,13 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>YellowRide — Verify Your Account</title>
+<title>YellowGo ride — Verify Your Account</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- EmailJS: sends an admin alert the moment a driver uploads a document, even if no admin is logged in -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
 <style>
   :root{
     --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
@@ -140,6 +142,30 @@
 
   <script src="supabase-config.js"></script>
   <script>
+    // ============ EMAILJS ADMIN ALERTS ============
+    // Fill these in once you've created your EmailJS account (Step 1 in chat).
+    const EMAILJS_PUBLIC_KEY  = "ifS-MZXz8HjB-GX-s";
+    const EMAILJS_SERVICE_ID  = "service_w7r49sa";
+    const EMAILJS_TEMPLATE_ID = "template_yggx8nr";
+    const ADMIN_ALERT_EMAIL   = "0555358325a@gmail.com";
+
+    if (window.emailjs) {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    }
+
+    function notifyAdmin(subject, message) {
+      if (!window.emailjs) {
+        console.warn("EmailJS not loaded — skipping admin alert:", subject);
+        return;
+      }
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: ADMIN_ALERT_EMAIL,
+        title: subject,
+        message: message
+      }).catch(err => console.error("EmailJS send failed:", err));
+    }
+    // ================================================
+
     let currentProfile = null;
     let driverRecord = null;
 
@@ -274,8 +300,17 @@
           uploadBtn.disabled = true;
           const result = await window.YellowRide.uploadDriverDocument(currentProfile.id, file, docType.type);
           uploadBtn.disabled = false;
-          if(result.success) await renderDocumentCards();
-          else { uploadBtn.textContent = 'Upload failed — retry'; alert('Upload failed: ' + result.error); }
+          if(result.success){
+            await renderDocumentCards();
+            // Alert admin immediately — driver may submit while no admin is logged in.
+            notifyAdmin(
+              `New document uploaded — ${driverRecord?.driver_code || currentProfile.id}`,
+              `Driver ${currentProfile.full_name || ''} (${driverRecord?.driver_code || 'no code yet'}) just uploaded a ${docType.name}. Go review it in the admin dashboard.`
+            );
+          } else {
+            uploadBtn.textContent = 'Upload failed — retry';
+            alert('Upload failed: ' + result.error);
+          }
         });
       });
     }
