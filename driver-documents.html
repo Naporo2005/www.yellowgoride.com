@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowRide — Verify Your Account</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root{
+    --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
+    --rust:#C4432B; --line:#E8E1CF; --muted:#8a8577; --text:#161512;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter',sans-serif; background:var(--white); color:var(--text); min-height:100vh; }
+  @media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}}
+
+  .topnav{ display:flex; align-items:center; justify-content:space-between; padding:14px 28px; background:var(--charcoal); color:var(--white); }
+  .brand{display:flex; align-items:center; gap:9px; font-family:'Sora',sans-serif; font-weight:800; font-size:19px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);}
+  .back-link{color:var(--white); text-decoration:none; font-size:13px; display:flex; align-items:center; gap:6px;}
+  .back-link:hover{color:var(--yellow);}
+
+  .page-wrap{max-width:640px; margin:0 auto; padding:40px 24px 80px;}
+  .page-header{margin-bottom:32px;}
+  .page-header h1{font-family:'Sora',sans-serif; font-size:26px; font-weight:700; margin-bottom:8px; color:var(--text);}
+  .page-header p{color:var(--muted); font-size:14.5px; line-height:1.5;}
+
+  .overall-status{ display:flex; align-items:center; gap:12px; border:1.5px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:32px; }
+  .overall-status .icon{font-size:22px;}
+  .overall-status.pending .icon{color:var(--yellow);}
+  .overall-status.verified .icon{color:var(--green);}
+  .overall-status.rejected .icon{color:var(--rust);}
+  .overall-status-text strong{display:block; font-family:'Sora',sans-serif; font-size:14.5px; color:var(--text);}
+  .overall-status-text span{font-size:12.5px; color:var(--muted);}
+
+  .section-card{ border:1.5px solid var(--line); border-radius:14px; padding:20px; margin-bottom:28px; }
+  .section-card h2{font-family:'Sora',sans-serif; font-size:16px; margin-bottom:14px; color:var(--text);}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  @media (max-width:520px){ .field-row{grid-template-columns:1fr;} }
+  .field{margin-bottom:14px;}
+  .field label{display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text);}
+  .field input{width:100%; padding:11px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; background:var(--white); color:var(--text);}
+  .field input:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(11,110,79,0.12);}
+  .field-hint{font-size:11.5px; color:var(--muted); margin-top:5px;}
+  .btn-save{ padding:10px 18px; background:var(--charcoal); color:var(--white); border:none; border-radius:9px; font-family:'Sora',sans-serif; font-weight:600; font-size:13.5px; cursor:pointer; }
+  .btn-save:hover{opacity:0.9;}
+
+  .doc-list{display:flex; flex-direction:column; gap:14px;}
+  .doc-card{ border:1.5px solid var(--line); border-radius:14px; padding:18px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .doc-icon{ width:46px; height:46px; border-radius:10px; background:#F1EDE0; display:flex; align-items:center; justify-content:center; font-size:18px; color:var(--charcoal); flex-shrink:0; }
+  .doc-info{flex:1; min-width:180px;}
+  .doc-name{font-family:'Sora',sans-serif; font-weight:600; font-size:14.5px; margin-bottom:2px; color:var(--text);}
+  .doc-desc{font-size:12.5px; color:var(--muted);}
+  .doc-filename{font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--green); margin-top:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .required-tag{font-size:10px; color:var(--rust); font-weight:700; text-transform:uppercase; margin-left:6px;}
+
+  .doc-status-pill{ font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; padding:4px 9px; border-radius:999px; text-transform:uppercase; letter-spacing:0.03em; flex-shrink:0; }
+  .doc-status-pill.missing{background:#F1EDE0; color:var(--muted);}
+  .doc-status-pill.pending{background:rgba(255,201,60,0.18); color:#9c7300;}
+  .doc-status-pill.approved{background:rgba(11,110,79,0.12); color:var(--green);}
+  .doc-status-pill.rejected{background:rgba(196,67,43,0.12); color:var(--rust);}
+
+  .doc-upload-btn{ flex-shrink:0; padding:8px 14px; border-radius:8px; border:1.5px solid var(--line); background:none; font-size:12.5px; font-weight:600; cursor:pointer; color:var(--text); }
+  .doc-upload-btn:hover{background:#F8F6EE;}
+  input[type="file"]{display:none;}
+
+  @media (prefers-color-scheme: dark){
+    :root{ --text:#F1EDE0; }
+    body{background:#0F0E0C;}
+    .overall-status, .section-card, .doc-card{border-color:#2A2820;}
+    .field input{background:#1B1A16; border-color:#2A2820;}
+    .doc-icon{background:#211F1A;}
+    .doc-upload-btn{border-color:#2A2820;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span>YellowRide</div>
+    <a href="driver-dashboard.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to dashboard</a>
+  </div>
+
+  <div class="page-wrap">
+    <div class="page-header">
+      <h1>Verify your account</h1>
+      <p>Upload your Ghana Card (or other national ID) and a selfie holding it so we can confirm it's really you. This usually takes less than 24 hours.</p>
+    </div>
+
+    <div class="overall-status pending" id="overall-status">
+      <i class="fa-solid fa-hourglass-half icon"></i>
+      <div class="overall-status-text">
+        <strong id="overall-status-title">Verification pending</strong>
+        <span id="overall-status-sub">Upload the documents below to get started.</span>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2>Identity</h2>
+      <div class="field">
+        <label for="id-number-input">Ghana Card / ID number</label>
+        <input type="text" id="id-number-input" placeholder="e.g. GHA-000000000-0" />
+        <div class="field-hint">This must be unique — it can't already be registered to another account.</div>
+      </div>
+      <button class="btn-save" id="save-id-btn">Save ID Number</button>
+      <div id="id-save-status" style="font-size:12.5px; margin-top:8px;"></div>
+    </div>
+
+    <div class="section-card">
+      <h2>Vehicle details</h2>
+      <div class="field-row">
+        <div class="field">
+          <label for="plate-input">Plate number</label>
+          <input type="text" id="plate-input" placeholder="e.g. NR 2451-24" />
+        </div>
+        <div class="field">
+          <label for="model-input">Vehicle model</label>
+          <input type="text" id="model-input" placeholder="e.g. Bajaj RE" />
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="color-input">Vehicle color</label>
+          <input type="text" id="color-input" placeholder="e.g. Yellow" />
+        </div>
+        <div class="field">
+          <label for="license-input">Driver's license number <span style="color:var(--muted); font-weight:400;">(optional)</span></label>
+          <input type="text" id="license-input" placeholder="If you have one" />
+        </div>
+      </div>
+      <button class="btn-save" id="save-vehicle-btn">Save Vehicle Details</button>
+      <div id="vehicle-save-status" style="font-size:12.5px; margin-top:8px;"></div>
+    </div>
+
+    <div class="doc-list" id="doc-list"></div>
+  </div>
+
+  <script src="supabase-config.js"></script>
+  <script>
+    let currentProfile = null;
+    let driverRecord = null;
+
+    // Required for verification: national_id + selfie_with_id.
+    // license/vehicle_registration/insurance are supporting docs, optional.
+    const DOC_TYPES = [
+      { type: 'national_id', name: "Ghana Card / National ID", desc: "Clear photo of the front", icon: "fa-address-card", required: true },
+      { type: 'selfie_with_id', name: "Selfie holding your ID", desc: "Your face and the ID clearly visible together", icon: "fa-camera", required: true },
+      { type: 'license', name: "Driver's License", desc: "If you have one", icon: "fa-id-card", required: false },
+      { type: 'vehicle_registration', name: "Vehicle Registration", desc: "Proof of vehicle ownership", icon: "fa-file-lines", required: false },
+      { type: 'insurance', name: "Insurance Certificate", desc: "Current vehicle insurance, if available", icon: "fa-shield-halved", required: false },
+    ];
+    const REQUIRED_TYPES = DOC_TYPES.filter(d => d.required).map(d => d.type);
+
+    (async function init(){
+      currentProfile = await window.YellowRide.requireRole('driver');
+      if(!currentProfile) return;
+
+      await loadDriverRecord();
+      populateFields();
+      renderOverallStatus();
+      await renderDocumentCards();
+    })();
+
+    async function loadDriverRecord(){
+      const { data, error } = await window.YellowRide.supabaseClient.from('drivers').select('*').eq('id', currentProfile.id).single();
+      if(!error) driverRecord = data;
+    }
+
+    function populateFields(){
+      if(!driverRecord) return;
+      document.getElementById('id-number-input').value = driverRecord.national_id_number || '';
+      document.getElementById('plate-input').value = driverRecord.vehicle_plate_number === 'PENDING' ? '' : (driverRecord.vehicle_plate_number || '');
+      document.getElementById('model-input').value = driverRecord.vehicle_model || '';
+      document.getElementById('color-input').value = driverRecord.vehicle_color || '';
+      document.getElementById('license-input').value = driverRecord.license_number || '';
+    }
+
+    document.getElementById('save-id-btn').addEventListener('click', async () => {
+      const statusEl = document.getElementById('id-save-status');
+      const idNumber = document.getElementById('id-number-input').value.trim();
+      if(!idNumber){ statusEl.style.color = 'var(--rust)'; statusEl.textContent = 'Enter your ID number.'; return; }
+
+      const { error } = await window.YellowRide.supabaseClient.from('drivers').update({ national_id_number: idNumber }).eq('id', currentProfile.id);
+
+      if(error){
+        statusEl.style.color = 'var(--rust)';
+        statusEl.textContent = error.message.includes('duplicate') || error.message.includes('unique')
+          ? 'This ID number is already registered to another account.'
+          : error.message;
+        return;
+      }
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = 'ID number saved.';
+      await loadDriverRecord();
+    });
+
+    document.getElementById('save-vehicle-btn').addEventListener('click', async () => {
+      const statusEl = document.getElementById('vehicle-save-status');
+      const plate = document.getElementById('plate-input').value.trim();
+      const model = document.getElementById('model-input').value.trim();
+      const color = document.getElementById('color-input').value.trim();
+      const license = document.getElementById('license-input').value.trim();
+
+      if(!plate){ statusEl.style.color = 'var(--rust)'; statusEl.textContent = 'Plate number is required.'; return; }
+
+      const { error } = await window.YellowRide.supabaseClient.from('drivers').update({
+        vehicle_plate_number: plate, vehicle_model: model, vehicle_color: color, license_number: license
+      }).eq('id', currentProfile.id);
+
+      statusEl.style.color = error ? 'var(--rust)' : 'var(--green)';
+      statusEl.textContent = error ? error.message : 'Vehicle details saved.';
+      if(!error) await loadDriverRecord();
+    });
+
+    function renderOverallStatus(){
+      const box = document.getElementById('overall-status');
+      const title = document.getElementById('overall-status-title');
+      const sub = document.getElementById('overall-status-sub');
+      const icon = box.querySelector('.icon');
+      const status = driverRecord?.verification_status || 'pending';
+      box.className = 'overall-status ' + (status === 'verified' ? 'verified' : status === 'rejected' ? 'rejected' : 'pending');
+
+      if(status === 'verified'){
+        icon.className = 'fa-solid fa-circle-check icon';
+        title.textContent = "You're verified!";
+        sub.textContent = 'You can go online once your daily fee is paid.';
+      } else if(status === 'rejected'){
+        icon.className = 'fa-solid fa-circle-xmark icon';
+        title.textContent = 'Verification rejected';
+        sub.textContent = 'One or more documents were rejected. Re-upload below to try again.';
+      } else {
+        icon.className = 'fa-solid fa-hourglass-half icon';
+        title.textContent = 'Verification pending';
+        sub.textContent = 'Upload your ID and selfie below to get started.';
+      }
+    }
+
+    async function renderDocumentCards(){
+      const { data: existingDocs } = await window.YellowRide.supabaseClient
+        .from('driver_documents').select('*').eq('driver_id', currentProfile.id).order('uploaded_at', { ascending: false });
+
+      const listEl = document.getElementById('doc-list');
+      listEl.innerHTML = '';
+
+      DOC_TYPES.forEach(docType => {
+        const existing = (existingDocs || []).find(d => d.document_type === docType.type);
+        const status = existing ? existing.status : 'missing';
+
+        const card = document.createElement('div');
+        card.className = 'doc-card';
+        card.innerHTML = `
+          <div class="doc-icon"><i class="fa-solid ${docType.icon}"></i></div>
+          <div class="doc-info">
+            <div class="doc-name">${docType.name}${docType.required ? '<span class="required-tag">Required</span>' : ''}</div>
+            <div class="doc-desc">${docType.desc}</div>
+            ${existing ? `<div class="doc-filename">${escapeHtml(existing.file_url.split('/').pop())}</div>` : ''}
+          </div>
+          <span class="doc-status-pill ${status}">${status === 'missing' ? 'Not uploaded' : status}</span>
+          <button class="doc-upload-btn" data-type="${docType.type}">${existing ? 'Re-upload' : 'Upload'}</button>
+          <input type="file" accept="image/*,.pdf" data-type="${docType.type}" />
+        `;
+        listEl.appendChild(card);
+
+        const uploadBtn = card.querySelector('.doc-upload-btn');
+        const fileInput = card.querySelector('input[type="file"]');
+        uploadBtn.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', async (e) => {
+          const file = e.target.files[0];
+          if(!file) return;
+          uploadBtn.textContent = 'Uploading…';
+          uploadBtn.disabled = true;
+          const result = await window.YellowRide.uploadDriverDocument(currentProfile.id, file, docType.type);
+          uploadBtn.disabled = false;
+          if(result.success) await renderDocumentCards();
+          else { uploadBtn.textContent = 'Upload failed — retry'; alert('Upload failed: ' + result.error); }
+        });
+      });
+    }
+
+    function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+  </script>
+</body>
+</html>
