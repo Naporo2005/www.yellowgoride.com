@@ -1,523 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+<meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>YellowRide — Rate Your Trip</title>
+<title>YellowGo Ride — Rate Your Trip</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{
---charcoal: #161512;
---white: #FFFCF5;
---yellow: #FFC93C;
---green: #0B6E4F;
---rust: #C4432B;
---line: #E8E1CF;
---muted: #8a8577;
---text: #161512;
-}
-*{box-sizing: border-box;
-margin: 0;
-padding: 0;
-}
-body{ font-family: 'Inter',sans-serif;
-background: var(--charcoal);
-color: var(--text);
-min-height: 100vh;
-display: flex;
-align-items: center;
-justify-content: center;
-padding: 20px;
-}
-@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
-transition-duration: 0.01ms !important;
-}}
+  :root{
+    --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
+    --rust:#C4432B; --line:#E8E1CF; --muted:#8a8577; --text:#161512;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter',sans-serif; background:var(--charcoal); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+  @media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}}
 
-.card{background: var(--white);
-border-radius: 20px;
-width: 100%;
-max-width: 440px;
-padding: 32px 28px;
-position: relative;
-animation: rise .35s ease;
-}
-@keyframes rise{ from{opacity: 0;
-transform: translateY(14px);
-} to{opacity: 1;
-transform: translateY(0);
-} }
+  .card{background:var(--white); border-radius:20px; width:100%; max-width:440px; padding:32px 28px; position:relative; animation:rise .35s ease;}
+  @keyframes rise{ from{opacity:0; transform:translateY(14px);} to{opacity:1; transform:translateY(0);} }
 
-.close-btn{position: absolute;
-top: 18px;
-right: 18px;
-background: none;
-border: none;
-font-size: 16px;
-color: var(--muted);
-cursor: pointer;
-width: 30px;
-height: 30px;
-border-radius: 50%;
-}
-.close-btn:hover{background: #F1EDE0;
-}
+  .close-btn{position:absolute; top:18px; right:18px; background:none; border:none; font-size:16px; color:var(--muted); cursor:pointer; width:30px; height:30px; border-radius:50%;}
+  .close-btn:hover{background:#F1EDE0;}
 
-.trip-summary{text-align: center;
-margin-bottom: 24px;
-}
-.trip-summary .check-icon{width: 56px;
-height: 56px;
-border-radius: 50%;
-background: rgba(11,110,79,0.1);
-color: var(--green);
-display: flex;
-align-items: center;
-justify-content: center;
-font-size: 24px;
-margin: 0 auto 14px;
-}
-.trip-summary h1{font-family: 'Sora',sans-serif;
-font-size: 20px;
-font-weight: 700;
-margin-bottom: 4px;
-color: var(--text);
-}
-.trip-summary p{font-size: 13px;
-color: var(--muted);
-}
+  .trip-summary{text-align:center; margin-bottom:24px;}
+  .trip-summary .check-icon{width:56px; height:56px; border-radius:50%; background:rgba(11,110,79,0.1); color:var(--green); display:flex; align-items:center; justify-content:center; font-size:24px; margin:0 auto 14px;}
+  .trip-summary h1{font-family:'Sora',sans-serif; font-size:20px; font-weight:700; margin-bottom:4px; color:var(--text);}
+  .trip-summary p{font-size:13px; color:var(--muted);}
 
-.driver-chip{display: flex;
-align-items: center;
-gap: 12px;
-background: #F8F6EE;
-border-radius: 12px;
-padding: 12px 14px;
-margin-bottom: 22px;
-}
-.driver-avatar{width: 42px;
-height: 42px;
-border-radius: 50%;
-background: var(--charcoal);
-color: var(--yellow);
-display: flex;
-align-items: center;
-justify-content: center;
-font-family: 'Sora',sans-serif;
-font-weight: 700;
-flex-shrink: 0;
-}
-.driver-chip-name{font-weight: 600;
-font-size: 14px;
-color: var(--text);
-}
-.driver-chip-meta{font-size: 12px;
-color: var(--muted);
-font-family: 'JetBrains Mono',monospace;
-}
+  .driver-chip{display:flex; align-items:center; gap:12px; background:#F8F6EE; border-radius:12px; padding:12px 14px; margin-bottom:22px;}
+  .driver-avatar{width:42px; height:42px; border-radius:50%; background:var(--charcoal); color:var(--yellow); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700; flex-shrink:0;}
+  .driver-chip-name{font-weight:600; font-size:14px; color:var(--text);}
+  .driver-chip-meta{font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace;}
 
-.star-row{display: flex;
-justify-content: center;
-gap: 8px;
-margin-bottom: 8px;
-}
-.star-btn{background: none;
-border: none;
-font-size: 34px;
-cursor: pointer;
-color: var(--line);
-transition: transform .1s, color .1s;
-}
-.star-btn.filled{color: var(--yellow);
-}
-.star-btn:hover{transform: scale(1.12);
-}
-.star-caption{text-align: center;
-font-size: 12.5px;
-color: var(--muted);
-margin-bottom: 22px;
-min-height: 16px;
-}
+  .star-row{display:flex; justify-content:center; gap:8px; margin-bottom:8px;}
+  .star-btn{background:none; border:none; font-size:34px; cursor:pointer; color:var(--line); transition:transform .1s, color .1s;}
+  .star-btn.filled{color:var(--yellow);}
+  .star-btn:hover{transform:scale(1.12);}
+  .star-caption{text-align:center; font-size:12.5px; color:var(--muted); margin-bottom:22px; min-height:16px;}
 
-.field{margin-bottom: 16px;
-}
-.field label{display: block;
-font-size: 12.5px;
-font-weight: 600;
-margin-bottom: 6px;
-color: var(--text);
-}
-.field textarea{width: 100%;
-padding: 12px 14px;
-border: 1.5px solid var(--line);
-border-radius: 10px;
-font-size: 13.5px;
-font-family: 'Inter',sans-serif;
-resize: vertical;
-min-height: 70px;
-background: var(--white);
-color: var(--text);
-}
-.field textarea:focus{outline: none;
-border-color: var(--green);
-box-shadow: 0 0 0 3px rgba(11,110,79,0.12);
-}
+  .field{margin-bottom:16px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--text);}
+  .field textarea{width:100%; padding:12px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:13.5px; font-family:'Inter',sans-serif; resize:vertical; min-height:70px; background:var(--white); color:var(--text);}
+  .field textarea:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(11,110,79,0.12);}
 
-.btn-primary{width: 100%;
-padding: 13px 0;
-background: var(--yellow);
-color: var(--charcoal);
-border: none;
-border-radius: 10px;
-font-family: 'Sora',sans-serif;
-font-weight: 700;
-font-size: 15px;
-cursor: pointer;
-transition: box-shadow .12s, transform .12s;
-}
-.btn-primary:hover{box-shadow: 0 6px 16px rgba(255,201,60,0.35);
-}
-.btn-primary:active{transform: scale(0.98);
-}
-.btn-primary:disabled{opacity: 0.55;
-cursor: not-allowed;
-}
+  .btn-primary{width:100%; padding:13px 0; background:var(--yellow); color:var(--charcoal); border:none; border-radius:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:15px; cursor:pointer; transition:box-shadow .12s, transform .12s;}
+  .btn-primary:hover{box-shadow:0 6px 16px rgba(255,201,60,0.35);}
+  .btn-primary:active{transform:scale(0.98);}
+  .btn-primary:disabled{opacity:0.55; cursor:not-allowed;}
 
-.report-link{display: block;
-text-align: center;
-margin-top: 16px;
-font-size: 12.5px;
-color: var(--rust);
-cursor: pointer;
-text-decoration: underline;
-background: none;
-border: none;
-}
-.status-msg{margin-top: 14px;
-padding: 10px 14px;
-border-radius: 8px;
-font-size: 13px;
-display: none;
-text-align: center;
-}
-.status-msg.error{display: block;
-background: rgba(196,67,43,0.08);
-color: var(--rust);
-border: 1px solid rgba(196,67,43,0.25);
-}
-.status-msg.success{display: block;
-background: rgba(11,110,79,0.08);
-color: var(--green);
-border: 1px solid rgba(11,110,79,0.25);
-}
+  .report-link{display:block; text-align:center; margin-top:16px; font-size:12.5px; color:var(--rust); cursor:pointer; text-decoration:underline; background:none; border:none;}
+  .status-msg{margin-top:14px; padding:10px 14px; border-radius:8px; font-size:13px; display:none; text-align:center;}
+  .status-msg.error{display:block; background:rgba(196,67,43,0.08); color:var(--rust); border:1px solid rgba(196,67,43,0.25);}
+  .status-msg.success{display:block; background:rgba(11,110,79,0.08); color:var(--green); border:1px solid rgba(11,110,79,0.25);}
 
-.panel-view{display: none;
-}
-.panel-view.active{display: block;
-}
+  .panel-view{display:none;}
+  .panel-view.active{display:block;}
 
-.reason-grid{display: flex;
-flex-direction: column;
-gap: 8px;
-margin-bottom: 16px;
-}
-.reason-option{border: 1.5px solid var(--line);
-border-radius: 10px;
-padding: 12px 14px;
-font-size: 13.5px;
-cursor: pointer;
-display: flex;
-align-items: center;
-gap: 10px;
-color: var(--text);
-}
-.reason-option.selected{border-color: var(--rust);
-background: rgba(196,67,43,0.05);
-}
-.reason-option input{accent-color: var(--rust);
-}
+  .reason-grid{display:flex; flex-direction:column; gap:8px; margin-bottom:16px;}
+  .reason-option{border:1.5px solid var(--line); border-radius:10px; padding:12px 14px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:10px; color:var(--text);}
+  .reason-option.selected{border-color:var(--rust); background:rgba(196,67,43,0.05);}
+  .reason-option input{accent-color:var(--rust);}
 
-.btn-danger{width: 100%;
-padding: 13px 0;
-background: var(--rust);
-color: var(--white);
-border: none;
-border-radius: 10px;
-font-family: 'Sora',sans-serif;
-font-weight: 700;
-font-size: 15px;
-cursor: pointer;
-}
-.btn-danger:hover{opacity: 0.92;
-}
-.btn-danger:disabled{opacity: 0.55;
-cursor: not-allowed;
-}
+  .btn-danger{width:100%; padding:13px 0; background:var(--rust); color:var(--white); border:none; border-radius:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:15px; cursor:pointer;}
+  .btn-danger:hover{opacity:0.92;}
+  .btn-danger:disabled{opacity:0.55; cursor:not-allowed;}
 
-.back-to-rating{display: block;
-text-align: center;
-margin-top: 14px;
-font-size: 12.5px;
-color: var(--muted);
-cursor: pointer;
-background: none;
-border: none;
-}
-.skip-link{display: block;
-text-align: center;
-margin-top: 14px;
-font-size: 12.5px;
-color: var(--muted);
-cursor: pointer;
-}
+  .back-to-rating{display:block; text-align:center; margin-top:14px; font-size:12.5px; color:var(--muted); cursor:pointer; background:none; border:none;}
+  
+  .skip-link{display:block; text-align:center; margin-top:14px; font-size:12.5px;
+  padding:5px; border-radius:7px; color:var(--muted); cursor:pointer;}
 
-@media (prefers-color-scheme: dark){
-:root{ --text: #F1EDE0;
-}
-.card{background: #161512;
-}
-.driver-chip{background: #211F1A;
-}
-.field textarea{background: #1B1A16;
-border-color: #2A2820;
-}
-.reason-option{border-color: #2A2820;
-}
-.close-btn:hover{background: #211F1A;
-}
-}
+  @media (prefers-color-scheme: dark){
+    :root{ --text:#F1EDE0; }
+    .card{background:#161512;}
+    .driver-chip{background:#211F1A;}
+    .field textarea{background:#1B1A16; border-color:#2A2820;}
+    .reason-option{border-color:#2A2820;}
+    .close-btn:hover{background:#211F1A;}
+  }
 </style>
 </head>
 <body>
 
-<div class="card">
-<button class="close-btn" id="close-btn" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+  <div class="card">
+    <button class="close-btn" id="close-btn" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
 
-<!-- ============ RATING VIEW ============ -->
-<div class="panel-view active" id="view-rating">
-<div class="trip-summary">
-<div class="check-icon">
-<i class="fa-solid fa-check"></i>
-</div>
-<h1>Trip complete!</h1>
-<p>
-How was your ride with YellowRide?
-</p>
-</div>
+    <!-- ============ RATING VIEW ============ -->
+    <div class="panel-view active" id="view-rating">
+      <div class="trip-summary">
+        <div class="check-icon"><i class="fa-solid fa-check"></i></div>
+        <h1>Trip complete!</h1>
+        <p>How was your ride with YellowRide?</p>
+      </div>
 
-<div class="driver-chip">
-<div class="driver-avatar" id="driver-initials">
---
-</div>
-<div>
-<div class="driver-chip-name" id="driver-name">
-Driver
-</div>
-<div class="driver-chip-meta" id="driver-code">
-—
-</div>
-</div>
-</div>
+      <div class="driver-chip">
+        <div class="driver-avatar" id="driver-initials">--</div>
+        <div>
+          <div class="driver-chip-name" id="driver-name">Driver</div>
+          <div class="driver-chip-meta" id="driver-code">—</div>
+        </div>
+      </div>
 
-<div class="star-row" id="star-row">
-<button class="star-btn" data-star="1"><i class="fa-solid fa-star"></i></button>
-<button class="star-btn" data-star="2"><i class="fa-solid fa-star"></i></button>
-<button class="star-btn" data-star="3"><i class="fa-solid fa-star"></i></button>
-<button class="star-btn" data-star="4"><i class="fa-solid fa-star"></i></button>
-<button class="star-btn" data-star="5"><i class="fa-solid fa-star"></i></button>
-</div>
-<div class="star-caption" id="star-caption">
-&nbsp;
-</div>
+      <div class="star-row" id="star-row">
+        <button class="star-btn" data-star="1"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="2"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="3"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="4"><i class="fa-solid fa-star"></i></button>
+        <button class="star-btn" data-star="5"><i class="fa-solid fa-star"></i></button>
+      </div>
+      <div class="star-caption" id="star-caption">&nbsp;</div>
 
-<div class="field">
-<label for="rating-comment">Add a comment (optional)</label>
-<textarea id="rating-comment" placeholder="What went well, or what could improve?"></textarea>
-</div>
+      <div class="field">
+        <label for="rating-comment">Add a comment (optional)</label>
+        <textarea id="rating-comment" placeholder="What went well, or what could improve?"></textarea>
+      </div>
 
-<button class="btn-primary" id="submit-rating-btn" disabled>Submit Rating</button>
-<button class="report-link" id="show-report-link">Report an issue with this driver</button>
-<button class="skip-link" id="skip-link">Skip for now</button>
+      <button class="btn-primary" id="submit-rating-btn" disabled>Submit Rating</button>
+      <button class="report-link" id="show-report-link">Report an issue with this driver</button>
+      <button class="skip-link" id="skip-link">Skip for now</button>
 
-<div class="status-msg" id="rating-status"></div>
-</div>
+      <div class="status-msg" id="rating-status"></div>
+    </div>
 
-<!-- ============ REPORT VIEW ============ -->
-<div class="panel-view" id="view-report">
-<div class="trip-summary">
-<div class="check-icon" style="background:rgba(196,67,43,0.1); color:var(--rust);">
-<i class="fa-solid fa-flag"></i>
-</div>
-<h1>Report an issue</h1>
-<p>
-Let us know what happened. Our team will review it.
-</p>
-</div>
+    <!-- ============ REPORT VIEW ============ -->
+    <div class="panel-view" id="view-report">
+      <div class="trip-summary">
+        <div class="check-icon" style="background:rgba(196,67,43,0.1); color:var(--rust);"><i class="fa-solid fa-flag"></i></div>
+        <h1>Report an issue</h1>
+        <p>Let us know what happened. Our team will review it.</p>
+      </div>
 
-<div class="reason-grid" id="reason-grid">
-<label class="reason-option"><input type="radio" name="reason" value="Unsafe driving" /> Unsafe driving</label>
-<label class="reason-option"><input type="radio" name="reason" value="Rude or inappropriate behavior" /> Rude or inappropriate behavior</label>
-<label class="reason-option"><input type="radio" name="reason" value="Couldn't agree on a fare" /> Couldn't agree on a fare</label>
-<label class="reason-option"><input type="radio" name="reason" value="Vehicle condition" /> Vehicle condition</label>
-<label class="reason-option"><input type="radio" name="reason" value="Route / navigation issue" /> Route or navigation issue</label>
-<label class="reason-option"><input type="radio" name="reason" value="Other" /> Other</label>
-</div>
+      <div class="reason-grid" id="reason-grid">
+        <label class="reason-option"><input type="radio" name="reason" value="Unsafe driving" /> Unsafe driving</label>
+        <label class="reason-option"><input type="radio" name="reason" value="Rude or inappropriate behavior" /> Rude or inappropriate behavior</label>
+        <label class="reason-option"><input type="radio" name="reason" value="Couldn't agree on a fare" /> Couldn't agree on a fare</label>
+        <label class="reason-option"><input type="radio" name="reason" value="Vehicle condition" /> Vehicle condition</label>
+        <label class="reason-option"><input type="radio" name="reason" value="Route / navigation issue" /> Route or navigation issue</label>
+        <label class="reason-option"><input type="radio" name="reason" value="Other" /> Other</label>
+      </div>
 
-<div class="field">
-<label for="report-details">Additional details</label>
-<textarea id="report-details" placeholder="Please describe what happened…"></textarea>
-</div>
+      <div class="field">
+        <label for="report-details">Additional details</label>
+        <textarea id="report-details" placeholder="Please describe what happened…"></textarea>
+      </div>
 
-<button class="btn-danger" id="submit-report-btn" disabled>Submit Report</button>
-<button class="back-to-rating" id="back-to-rating-link">← Back to rating</button>
+      <button class="btn-danger" id="submit-report-btn" disabled>Submit Report</button>
+      <button class="back-to-rating" id="back-to-rating-link">← Back to rating</button>
 
-<div class="status-msg" id="report-status"></div>
-</div>
-</div>
+      <div class="status-msg" id="report-status"></div>
+    </div>
+  </div>
 
-<script src="supabase-config.js"></script>
-<script>
-const params = new URLSearchParams(window.location.search);
-const rideId = params.get('ride');
+  <script src="supabase-config.js"></script>
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const rideId = params.get('ride');
 
-let currentProfile = null;
-let rideData = null;
-let selectedStars = 0;
+    let currentProfile = null;
+    let rideData = null;
+    let selectedStars = 0;
 
-const STAR_CAPTIONS = { 1: 'Poor', 2: 'Not great', 3: 'Okay', 4: 'Good', 5: 'Excellent!' };
+    const STAR_CAPTIONS = { 1: 'Poor', 2: 'Not great', 3: 'Okay', 4: 'Good', 5: 'Excellent!' };
 
-(async function init(){
-currentProfile = await window.YellowRide.requireRole('passenger');
-if (!currentProfile) return;
+    (async function init(){
+      currentProfile = await window.YellowRide.requireRole('passenger');
+      if(!currentProfile) return;
 
-if (!rideId){
-document.querySelector('.trip-summary p').textContent = 'No ride specified.';
-document.getElementById('submit-rating-btn').style.display = 'none';
-return;
-}
-await loadRide();
-})();
+      if(!rideId){
+        document.querySelector('.trip-summary p').textContent = 'No ride specified.';
+        document.getElementById('submit-rating-btn').style.display = 'none';
+        return;
+      }
+      await loadRide();
+    })();
 
-async function loadRide(){
-const { data, error } = await window.YellowRide.supabaseClient
-.from('rides').select('*, drivers(driver_code, profiles(full_name))')
-.eq('id', rideId).eq('passenger_id', currentProfile.id).single();
+    async function loadRide(){
+      const { data, error } = await window.YellowRide.supabaseClient
+        .from('rides').select('*, drivers(driver_code, profiles(full_name))')
+        .eq('id', rideId).eq('passenger_id', currentProfile.id).single();
 
-if (error || !data){ document.querySelector('.trip-summary p').textContent = 'Trip not found.'; return; }
+      if(error || !data){ document.querySelector('.trip-summary p').textContent = 'Trip not found.'; return; }
 
-rideData = data;
-document.getElementById('driver-initials').textContent = getInitials(data.drivers?.profiles?.full_name);
-document.getElementById('driver-name').textContent = data.drivers?.profiles?.full_name || 'Driver';
-document.getElementById('driver-code').textContent = data.drivers?.driver_code || '';
+      rideData = data;
+      document.getElementById('driver-initials').textContent = getInitials(data.drivers?.profiles?.full_name);
+      document.getElementById('driver-name').textContent = data.drivers?.profiles?.full_name || 'Driver';
+      document.getElementById('driver-code').textContent = data.drivers?.driver_code || '';
 
-const { data: existingRating } = await window.YellowRide.supabaseClient
-.from('ratings').select('*').eq('ride_id', rideId).eq('rated_by', currentProfile.id).maybeSingle();
+      const { data: existingRating } = await window.YellowRide.supabaseClient
+        .from('ratings').select('*').eq('ride_id', rideId).eq('rated_by', currentProfile.id).maybeSingle();
 
-if (existingRating){
-selectedStars = existingRating.stars;
-document.getElementById('rating-comment').value = existingRating.comment || '';
-updateStarUI();
-document.getElementById('submit-rating-btn').textContent = 'Update Rating';
-document.getElementById('submit-rating-btn').disabled = false;
-}
-}
+      if(existingRating){
+        selectedStars = existingRating.stars;
+        document.getElementById('rating-comment').value = existingRating.comment || '';
+        updateStarUI();
+        document.getElementById('submit-rating-btn').textContent = 'Update Rating';
+        document.getElementById('submit-rating-btn').disabled = false;
+      }
+    }
 
-function getInitials(name){ if (!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0, 2).join('').toUpperCase(); }
+    function getInitials(name){ if(!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase(); }
 
-const starButtons = document.querySelectorAll('.star-btn');
-starButtons.forEach(btn => {
-btn.addEventListener('click', () => {
-selectedStars = parseInt(btn.dataset.star);
-updateStarUI();
-document.getElementById('submit-rating-btn').disabled = false;
-});
-btn.addEventListener('mouseenter', () => previewStars(parseInt(btn.dataset.star)));
-btn.addEventListener('mouseleave', () => updateStarUI());
-});
-function previewStars(count){
-starButtons.forEach(b => b.classList.toggle('filled', parseInt(b.dataset.star) <= count));
-document.getElementById('star-caption').textContent = STAR_CAPTIONS[count] || '';
-}
-function updateStarUI(){
-starButtons.forEach(b => b.classList.toggle('filled', parseInt(b.dataset.star) <= selectedStars));
-document.getElementById('star-caption').textContent = selectedStars ? STAR_CAPTIONS[selectedStars]: '\u00A0';
-}
+    const starButtons = document.querySelectorAll('.star-btn');
+    starButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        selectedStars = parseInt(btn.dataset.star);
+        updateStarUI();
+        document.getElementById('submit-rating-btn').disabled = false;
+      });
+      btn.addEventListener('mouseenter', () => previewStars(parseInt(btn.dataset.star)));
+      btn.addEventListener('mouseleave', () => updateStarUI());
+    });
+    function previewStars(count){
+      starButtons.forEach(b => b.classList.toggle('filled', parseInt(b.dataset.star) <= count));
+      document.getElementById('star-caption').textContent = STAR_CAPTIONS[count] || '';
+    }
+    function updateStarUI(){
+      starButtons.forEach(b => b.classList.toggle('filled', parseInt(b.dataset.star) <= selectedStars));
+      document.getElementById('star-caption').textContent = selectedStars ? STAR_CAPTIONS[selectedStars] : '\u00A0';
+    }
 
-document.getElementById('submit-rating-btn').addEventListener('click', async () => {
-if (!selectedStars || !rideData) return;
-const btn = document.getElementById('submit-rating-btn');
-const statusEl = document.getElementById('rating-status');
-const comment = document.getElementById('rating-comment').value.trim();
+    document.getElementById('submit-rating-btn').addEventListener('click', async () => {
+      if(!selectedStars || !rideData) return;
+      const btn = document.getElementById('submit-rating-btn');
+      const statusEl = document.getElementById('rating-status');
+      const comment = document.getElementById('rating-comment').value.trim();
 
-btn.disabled = true; btn.textContent = 'Submitting…';
+      btn.disabled = true; btn.textContent = 'Submitting…';
 
-const { error } = await window.YellowRide.supabaseClient.from('ratings').upsert({
-ride_id: rideId, rated_by: currentProfile.id, rated_user: rideData.driver_id, stars: selectedStars, comment: comment || null
-}, { onConflict: 'ride_id,rated_by' });
+      const { error } = await window.YellowRide.supabaseClient.from('ratings').upsert({
+        ride_id: rideId, rated_by: currentProfile.id, rated_user: rideData.driver_id, stars: selectedStars, comment: comment || null
+      }, { onConflict: 'ride_id,rated_by' });
 
-btn.disabled = false; btn.textContent = 'Submit Rating';
+      btn.disabled = false; btn.textContent = 'Submit Rating';
 
-if (error){ statusEl.className = 'status-msg error'; statusEl.textContent = error.message; return; }
+      if(error){ statusEl.className = 'status-msg error'; statusEl.textContent = error.message; return; }
 
-statusEl.className = 'status-msg success';
-statusEl.textContent = 'Thanks for your feedback!';
-await recalculateDriverRating(rideData.driver_id);
-setTimeout(() => window.location.href = 'passenger-dashboard.html', 1200);
-});
+      statusEl.className = 'status-msg success';
+      statusEl.textContent = 'Thanks for your feedback!';
+      // Driver's rating_avg is now recalculated automatically by a database
+      // trigger (trg_update_driver_rating_avg) the moment this insert lands —
+      // no client-side update to the drivers table needed (and it wasn't
+      // permitted by RLS anyway, which is what caused ratings to silently
+      // stop reaching the driver's dashboard before).
+      setTimeout(() => window.location.href = 'passenger-dashboard.html', 1200);
+    });
 
-async function recalculateDriverRating(driverId){
-const { data: allRatings } = await window.YellowRide.supabaseClient.from('ratings').select('stars').eq('rated_user', driverId);
-if (!allRatings || allRatings.length === 0) return;
-const avg = allRatings.reduce((sum, r) => sum + r.stars, 0) / allRatings.length;
-await window.YellowRide.supabaseClient.from('drivers').update({ rating_avg: Math.round(avg * 100) / 100 }).eq('id', driverId);
-}
+    document.getElementById('skip-link').addEventListener('click', () => window.location.href = 'passenger-dashboard.html');
+    document.getElementById('close-btn').addEventListener('click', () => window.location.href = 'passenger-dashboard.html');
 
-document.getElementById('skip-link').addEventListener('click', () => window.location.href = 'passenger-dashboard.html');
-document.getElementById('close-btn').addEventListener('click', () => window.location.href = 'passenger-dashboard.html');
+    document.getElementById('show-report-link').addEventListener('click', () => {
+      document.getElementById('view-rating').classList.remove('active');
+      document.getElementById('view-report').classList.add('active');
+    });
+    document.getElementById('back-to-rating-link').addEventListener('click', () => {
+      document.getElementById('view-report').classList.remove('active');
+      document.getElementById('view-rating').classList.add('active');
+    });
 
-document.getElementById('show-report-link').addEventListener('click', () => {
-document.getElementById('view-rating').classList.remove('active');
-document.getElementById('view-report').classList.add('active');
-});
-document.getElementById('back-to-rating-link').addEventListener('click', () => {
-document.getElementById('view-report').classList.remove('active');
-document.getElementById('view-rating').classList.add('active');
-});
+    document.querySelectorAll('input[name="reason"]').forEach(radio => {
+      radio.addEventListener('change', () => {
+        document.querySelectorAll('.reason-option').forEach(opt => opt.classList.remove('selected'));
+        radio.closest('.reason-option').classList.add('selected');
+        document.getElementById('submit-report-btn').disabled = false;
+      });
+    });
 
-document.querySelectorAll('input[name="reason"]').forEach(radio => {
-radio.addEventListener('change', () => {
-document.querySelectorAll('.reason-option').forEach(opt => opt.classList.remove('selected'));
-radio.closest('.reason-option').classList.add('selected');
-document.getElementById('submit-report-btn').disabled = false;
-});
-});
+    document.getElementById('submit-report-btn').addEventListener('click', async () => {
+      if(!rideData) return;
+      const selectedReason = document.querySelector('input[name="reason"]:checked');
+      if(!selectedReason) return;
 
-document.getElementById('submit-report-btn').addEventListener('click', async () => {
-if (!rideData) return;
-const selectedReason = document.querySelector('input[name="reason"]:checked');
-if (!selectedReason) return;
+      const btn = document.getElementById('submit-report-btn');
+      const statusEl = document.getElementById('report-status');
+      const details = document.getElementById('report-details').value.trim();
 
-const btn = document.getElementById('submit-report-btn');
-const statusEl = document.getElementById('report-status');
-const details = document.getElementById('report-details').value.trim();
+      btn.disabled = true; btn.textContent = 'Submitting…';
 
-btn.disabled = true; btn.textContent = 'Submitting…';
+      const { error } = await window.YellowRide.supabaseClient.from('reports').insert({
+        ride_id: rideId, reported_by: currentProfile.id, reported_user: rideData.driver_id,
+        reason: selectedReason.value, details: details || null, status: 'open'
+      });
 
-const { error } = await window.YellowRide.supabaseClient.from('reports').insert({
-ride_id: rideId, reported_by: currentProfile.id, reported_user: rideData.driver_id,
-reason: selectedReason.value, details: details || null, status: 'open'
-});
+      btn.disabled = false; btn.textContent = 'Submit Report';
 
-btn.disabled = false; btn.textContent = 'Submit Report';
+      if(error){ statusEl.className = 'status-msg error'; statusEl.textContent = error.message; return; }
 
-if (error){ statusEl.className = 'status-msg error'; statusEl.textContent = error.message; return; }
-
-statusEl.className = 'status-msg success';
-statusEl.textContent = 'Report submitted. Our team will review it shortly.';
-setTimeout(() => window.location.href = 'passenger-dashboard.html', 1400);
-});
-</script>
+      statusEl.className = 'status-msg success';
+      statusEl.textContent = 'Report submitted. Our team will review it shortly.';
+      setTimeout(() => window.location.href = 'passenger-dashboard.html', 1400);
+    });
+  </script>
 </body>
 </html>
