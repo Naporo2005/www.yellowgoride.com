@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo ride — Driver Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- EmailJS: sends an admin alert the moment a driver submits a daily-fee payment, even if no admin is logged in -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<style>
+  :root{
+    --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
+    --rust:#C4432B; --line:#E8E1CF; --muted:#8a8577; --text:#161512;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{ font-family:'Inter',sans-serif; background:var(--white); color:var(--text); min-height:100vh; }
+  @media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}}
+
+  .topnav{ display:flex; align-items:center; justify-content:space-between; padding:14px 28px; background:var(--charcoal); color:var(--white); flex-wrap:wrap; gap:10px; }
+  .brand{display:flex; align-items:center; gap:9px; font-family:'Sora',sans-serif; font-weight:800; font-size:19px;}
+  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);}
+  .driver-code-chip{ font-family:'JetBrains Mono',monospace; font-size:11.5px; background:#242219; color:var(--yellow); padding:5px 10px; border-radius:999px; margin-left:6px; }
+
+  .availability-toggle{ display:flex; align-items:center; gap:10px; background:#242219; padding:6px 6px 6px 14px; border-radius:999px; }
+  .availability-label{font-family:'JetBrains Mono',monospace; font-size:12px; letter-spacing:0.03em; color:var(--white);}
+  .toggle-switch{ width:46px; height:26px; border-radius:999px; background:#3a382f; position:relative; cursor:pointer; border:none; transition:background .2s; }
+  .toggle-switch.online{background:var(--green);}
+  .toggle-switch.locked{opacity:0.4; cursor:not-allowed;}
+  .toggle-switch .knob{ width:20px; height:20px; border-radius:50%; background:var(--white); position:absolute; top:3px; left:3px; transition:transform .2s; }
+  .toggle-switch.online .knob{transform:translateX(20px);}
+
+  .nav-actions{display:flex; align-items:center; gap:16px;}
+  .icon-btn{background:none; border:none; color:var(--white); font-size:17px; cursor:pointer; position:relative; padding:6px;}
+  .icon-btn .badge{position:absolute; top:0; right:0; width:8px; height:8px; background:var(--rust); border-radius:50%; border:2px solid var(--charcoal);}
+  .avatar-btn{ width:34px; height:34px; border-radius:50%; background:var(--yellow); color:var(--charcoal); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700; font-size:13px; border:none; cursor:pointer; }
+
+  .banner{ display:none; align-items:center; gap:10px; padding:12px 28px; font-size:13.5px; border-bottom:1px solid; }
+  .banner.show{display:flex;}
+  .banner.warn{background:rgba(196,67,43,0.08); color:var(--rust); border-color:rgba(196,67,43,0.25);}
+  .banner.info{background:rgba(255,201,60,0.12); color:#8a6a00; border-color:rgba(255,201,60,0.35);}
+  .banner a{color:inherit; font-weight:700; text-decoration:underline; cursor:pointer;}
+
+  .top-tabs{ display:flex; gap:6px; padding:14px 28px 0; border-bottom:1px solid var(--line); }
+  .top-tab{ padding:10px 16px; font-family:'Sora',sans-serif; font-weight:600; font-size:13.5px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; }
+  .top-tab.active{color:var(--text); border-color:var(--yellow);}
+
+  .view{display:none; padding:24px 28px;}
+  .view.active{display:block;}
+
+  .layout{display:grid; grid-template-columns:1fr 380px; gap:0;}
+  @media (max-width: 960px){ .layout{grid-template-columns:1fr;} }
+  .side-area{padding-left:26px; border-left:1px solid var(--line);}
+  @media (max-width: 960px){ .side-area{border-left:none; border-top:1px solid var(--line); padding-left:0; margin-top:24px; padding-top:24px;} }
+
+  .stats-row{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px;}
+  @media (max-width:640px){ .stats-row{grid-template-columns:1fr 1fr;} }
+  .stat-card{border:1.5px solid var(--line); border-radius:14px; padding:16px;}
+  .stat-label{font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace; margin-bottom:6px;}
+  .stat-value{font-family:'Sora',sans-serif; font-size:22px; font-weight:700; color:var(--text);}
+  .stat-value.green{color:var(--green);}
+  .stat-value.rust{color:var(--rust);}
+
+  h2.section-title{font-family:'Sora',sans-serif; font-size:19px; font-weight:700; margin-bottom:4px; color:var(--text);}
+  .section-sub{font-size:13px; color:var(--muted); margin-bottom:18px;}
+
+  .request-card{ border:2px solid var(--yellow); border-radius:16px; padding:20px; background:rgba(255,201,60,0.06); margin-bottom:20px; animation: glow 1.6s ease-in-out infinite; }
+  @keyframes glow{0%,100%{box-shadow:0 0 0 0 rgba(255,201,60,0.25);}50%{box-shadow:0 0 0 8px rgba(255,201,60,0);}}
+  .request-card-top{display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;}
+  .request-card-top span{font-family:'JetBrains Mono',monospace; font-size:11px; text-transform:uppercase; color:var(--muted);}
+  .route-line{display:flex; flex-direction:column; gap:10px; margin-bottom:16px;}
+  .route-point{display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text);}
+  .request-actions{display:flex; gap:10px;}
+  .btn-accept{flex:1; padding:12px 0; background:var(--green); color:var(--white); border:none; border-radius:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:14px; cursor:pointer;}
+  .btn-decline{flex:1; padding:12px 0; background:none; color:var(--rust); border:1.5px solid rgba(196,67,43,0.3); border-radius:10px; font-family:'Sora',sans-serif; font-weight:600; font-size:14px; cursor:pointer;}
+
+  .active-trip-card{border:1.5px solid var(--line); border-radius:16px; padding:20px; margin-bottom:20px;}
+  .status-badge{ display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; padding:4px 10px; border-radius:999px; background:rgba(11,110,79,0.1); color:var(--green); text-transform:uppercase; letter-spacing:0.03em; margin-bottom:14px; }
+  .passenger-info{display:flex; align-items:center; gap:12px; margin-bottom:16px;}
+  .passenger-avatar{width:44px; height:44px; border-radius:50%; background:var(--charcoal); color:var(--yellow); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700;}
+  .passenger-name{font-weight:600; font-size:14px; color:var(--text);}
+  .passenger-meta{font-size:12px; color:var(--muted);}
+  .trip-actions{display:flex; gap:8px; flex-wrap:wrap;}
+  .trip-actions button{padding:10px 16px; border-radius:8px; border:1.5px solid var(--line); background:none; font-size:13px; font-weight:600; cursor:pointer; color:var(--text);}
+  .trip-actions button.primary{background:var(--yellow); border:none; color:var(--charcoal);}
+  .trip-actions button.danger{border-color:rgba(196,67,43,0.3); color:var(--rust);}
+
+  .idle-state{text-align:center; padding:60px 20px; color:var(--muted);}
+  .idle-state i{font-size:32px; display:block; margin-bottom:14px; opacity:0.35;}
+
+  .history-item{border-bottom:1px solid var(--line); padding:12px 0;}
+  .history-top{display:flex; justify-content:space-between; align-items:baseline;}
+  .history-route{font-size:13px; font-weight:600; color:var(--text);}
+  .history-meta{font-size:11.5px; color:var(--muted); margin-top:2px;}
+  .empty-state{text-align:center; padding:30px 10px; color:var(--muted); font-size:13px;}
+  .empty-state i{font-size:22px; display:block; margin-bottom:8px; opacity:0.4;}
+
+  .rating-summary{display:flex; align-items:center; gap:10px; margin-bottom:20px;}
+  .rating-stars{color:var(--yellow); font-size:15px;}
+  .rating-value{font-family:'Sora',sans-serif; font-weight:700; font-size:16px; color:var(--text);}
+
+  #driver-map{height:280px; border-radius:14px; overflow:hidden; border:1.5px solid var(--line); margin-top:20px;}
+
+  .fee-status-card{ border:1.5px solid var(--line); border-radius:16px; padding:22px; margin-bottom:24px; text-align:center; }
+  .fee-status-card.cleared{border-color:var(--green); background:rgba(11,110,79,0.05);}
+  .fee-status-card.pending{border-color:var(--yellow); background:rgba(255,201,60,0.06);}
+  .fee-status-card.none{border-color:var(--line);}
+  .fee-status-icon{font-size:30px; margin-bottom:10px;}
+  .fee-status-card.cleared .fee-status-icon{color:var(--green);}
+  .fee-status-card.pending .fee-status-icon{color:#8a6a00;}
+  .fee-status-card.none .fee-status-icon{color:var(--muted);}
+  .fee-status-title{font-family:'Sora',sans-serif; font-weight:700; font-size:16px; margin-bottom:4px; color:var(--text);}
+  .fee-status-sub{font-size:13px; color:var(--muted);}
+
+  .fee-instructions{background:#F8F6EE; border-radius:12px; padding:16px; margin-bottom:20px; font-size:13.5px; color:var(--text);}
+  .fee-instructions .momo-number{font-family:'JetBrains Mono',monospace; font-size:17px; font-weight:700; color:var(--text); margin:6px 0;}
+
+  .field{margin-bottom:14px; max-width:380px;}
+  .field label{display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--text);}
+  .field input{width:100%; padding:11px 14px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; background:var(--white); color:var(--text);}
+  .field input:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(11,110,79,0.12);}
+  .btn-primary{ padding:12px 22px; background:var(--yellow); color:var(--charcoal); border:none; border-radius:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:14px; cursor:pointer; }
+  .btn-primary:disabled{opacity:0.55; cursor:not-allowed;}
+
+  .fee-history-item{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line); font-size:13px; color:var(--text);}
+  .pill{font-family:'JetBrains Mono',monospace; font-size:10.5px; font-weight:500; padding:3px 9px; border-radius:999px; text-transform:uppercase;}
+  .pill.approved{background:rgba(11,110,79,0.12); color:var(--green);}
+  .pill.pending{background:rgba(255,201,60,0.2); color:#8a6a00;}
+  .pill.rejected{background:rgba(196,67,43,0.12); color:var(--rust);}
+
+  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(22,21,18,0.5); z-index:100; align-items:center; justify-content:center; padding:20px; }
+  .modal-backdrop.show{display:flex;}
+  .modal-card{background:var(--white); border-radius:16px; padding:24px; max-width:380px; width:100%;}
+  .modal-card h3{font-family:'Sora',sans-serif; font-size:17px; margin-bottom:14px; color:var(--text);}
+  .reason-option{border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:9px; margin-bottom:8px; color:var(--text);}
+  .reason-option.selected{border-color:var(--rust); background:rgba(196,67,43,0.05);}
+  .modal-actions{display:flex; gap:10px; margin-top:16px;}
+  .modal-actions button{flex:1; padding:11px 0; border-radius:9px; font-weight:600; font-size:13.5px; cursor:pointer;}
+  .modal-cancel-confirm{background:var(--rust); color:var(--white); border:none;}
+  .modal-cancel-dismiss{background:none; border:1.5px solid var(--line); color:var(--text);}
+
+  /* ============ DARK MODE ============ */
+  @media (prefers-color-scheme: dark){
+    :root{ --text:#F1EDE0; }
+    body{background:#0F0E0C;}
+    .side-area, .top-tabs{border-color:#2A2820;}
+    .stat-card, .active-trip-card, .history-item, .fee-status-card, .field input, .request-card{border-color:#2A2820;}
+    .field input{background:#1B1A16;}
+    .fee-instructions{background:#1B1A16;}
+    .modal-card{background:#161512;}
+    .reason-option{border-color:#2A2820;}
+    .trip-actions button{border-color:#2A2820;}
+    .trip-actions button.primary{color:var(--charcoal);}
+    .modal-cancel-dismiss{border-color:#2A2820;}
+    .fee-status-card.none{border-color:#2A2820;}
+  }
+</style>
+</head>
+<body>
+
+  <div class="topnav">
+    <div class="brand"><span class="dot"></span>YellowRide <span class="driver-code-chip" id="driver-code-chip">—</span></div>
+    <div class="availability-toggle">
+      <span class="availability-label" id="availability-label">OFFLINE</span>
+      <button class="toggle-switch" id="availability-switch" aria-label="Toggle online status"><span class="knob"></span></button>
+    </div>
+    <div class="nav-actions">
+      <button class="icon-btn" id="notif-btn"><i class="fa-solid fa-bell"></i><span class="badge" id="notif-badge" style="display:none;"></span></button>
+      <button class="avatar-btn" id="avatar-btn">--</button>
+    </div>
+  </div>
+
+  <div class="banner warn" id="verify-banner">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span>Your account isn't verified yet. <a id="upload-docs-link">Upload your Ghana Card and selfie</a> to get approved.</span>
+  </div>
+  <div class="banner info" id="fee-banner">
+    <i class="fa-solid fa-money-bill-wave"></i>
+    <span>You haven't paid today's fee yet. <a id="go-to-fee-link">Pay now</a> to go online.</span>
+  </div>
+
+  <div class="top-tabs">
+    <div class="top-tab active" data-view="rides">Rides</div>
+    <div class="top-tab" data-view="fee">Daily Fee</div>
+  </div>
+
+  <!-- ============ RIDES VIEW ============ -->
+  <div class="view active" id="view-rides">
+    <div class="layout">
+      <div class="main-area">
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-label">TOTAL TRIPS</div><div class="stat-value" id="stat-trips">0</div></div>
+          <div class="stat-card"><div class="stat-label">RATING</div><div class="stat-value" id="stat-rating">—</div></div>
+          <div class="stat-card"><div class="stat-label">TODAY'S FEE</div><div class="stat-value" id="stat-fee-status">—</div></div>
+        </div>
+
+        <div id="dashboard-body">
+          <div class="idle-state" id="idle-state">
+            <i class="fa-solid fa-power-off"></i>
+            <p>You're offline. Go online to start receiving ride requests.</p>
+          </div>
+        </div>
+
+        <div id="driver-map"></div>
+      </div>
+
+      <div class="side-area">
+        <div class="rating-summary">
+          <span class="rating-stars" id="rating-stars">☆☆☆☆☆</span>
+          <span class="rating-value" id="rating-value-text">0.0</span>
+        </div>
+        <h2 class="section-title">Recent Trips</h2>
+        <p class="section-sub">Your completed rides.</p>
+        <div id="history-list"><div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i>Loading trips…</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DAILY FEE VIEW ============ -->
+  <div class="view" id="view-fee">
+    <h1 class="section-title" style="font-size:22px;">Daily Fee</h1>
+    <p class="section-sub">Pay your daily fee to go online. Payments are reviewed and approved by an admin.</p>
+
+    <div class="fee-status-card none" id="fee-status-card">
+      <div class="fee-status-icon"><i class="fa-solid fa-circle-question"></i></div>
+      <div class="fee-status-title" id="fee-status-title">Checking status…</div>
+      <div class="fee-status-sub" id="fee-status-sub">&nbsp;</div>
+    </div>
+
+    <div class="fee-instructions">
+      Send your daily fee via Mobile Money to:
+      <div class="momo-number" id="momo-number">—</div>
+      Then enter the transaction reference below.
+    </div>
+
+    <div class="field">
+      <label for="fee-amount">Amount paid (GH₵)</label>
+      <input type="number" id="fee-amount" step="0.01" />
+    </div>
+    <div class="field">
+      <label for="fee-reference">MoMo transaction reference</label>
+      <input type="text" id="fee-reference" placeholder="e.g. 8834920011" />
+    </div>
+    <button class="btn-primary" id="submit-fee-btn">Submit Payment</button>
+    <div id="fee-submit-status" style="font-size:13px; margin-top:10px;"></div>
+
+    <h2 class="section-title" style="margin-top:32px;">Payment History</h2>
+    <div id="fee-history-list"><div class="empty-state"><i class="fa-solid fa-receipt"></i>Loading…</div></div>
+  </div>
+
+  <!-- ============ CANCEL TRIP MODAL ============ -->
+  <div class="modal-backdrop" id="cancel-modal">
+    <div class="modal-card">
+      <h3>Why are you cancelling?</h3>
+      <div id="cancel-reason-options">
+        <label class="reason-option"><input type="radio" name="cancel-reason" value="could_not_agree_price" style="display:none;" /> Couldn't agree on a price</label>
+        <label class="reason-option"><input type="radio" name="cancel-reason" value="passenger_unavailable" style="display:none;" /> Passenger not available</label>
+        <label class="reason-option"><input type="radio" name="cancel-reason" value="other" style="display:none;" /> Other</label>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-cancel-dismiss" id="cancel-modal-dismiss">Never mind</button>
+        <button class="modal-cancel-confirm" id="cancel-modal-confirm" disabled>Cancel Trip</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="supabase-config.js"></script>
+  <script>
+    // ============ EMAILJS ADMIN ALERTS ============
+    // Sends you an email the moment a driver submits a daily-fee payment,
+    // even if you (the admin) aren't logged in anywhere to see it live.
+    const EMAILJS_PUBLIC_KEY  = "ifS-MZXz8HjB-GX-s";
+    const EMAILJS_SERVICE_ID  = "service_w7r49sa";
+    const EMAILJS_TEMPLATE_ID = "template_yggx8nr";
+    const ADMIN_ALERT_EMAIL   = "0555358325a@gmail.com";
+
+    if (window.emailjs) {
+      emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+    }
+
+    function notifyAdmin(subject, message) {
+      if (!window.emailjs) {
+        console.warn("EmailJS not loaded — skipping admin alert:", subject);
+        return;
+      }
+      emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, {
+        to_email: ADMIN_ALERT_EMAIL,
+        title: subject,
+        message: message
+      }).catch(err => console.error("EmailJS send failed:", err));
+    }
+    // ================================================
+
+    let currentProfile = null;
+    let driverRecord = null;
+    let isOnline = false;
+    let isClearedToday = false;
+    let activeRideId = null;
+    let incomingRideId = null;
+    let rideChannelUnsubscribe = null;
+    let locationWatchId = null;
+    let map = null, selfMarker = null, pickupMarker = null, dropoffMarker = null;
+
+    (async function init(){
+      currentProfile = await window.YellowRide.requireRole('driver');
+      if(!currentProfile) return;
+
+      document.getElementById('avatar-btn').textContent = getInitials(currentProfile.full_name);
+      map = L.map('driver-map').setView([9.4008, -0.8393], 14);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap' }).addTo(map);
+
+      await loadDriverRecord();
+      await refreshFeeStatus();
+      renderBanners();
+      renderStats();
+      await loadTripHistory();
+      subscribeToIncomingRequests();
+      await checkForActiveTrip();
+      await loadFeeHistory();
+    })();
+
+    function getInitials(name){ if(!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase(); }
+    function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+
+    document.querySelectorAll('.top-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.top-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('view-' + tab.dataset.view).classList.add('active');
+      });
+    });
+    document.getElementById('go-to-fee-link').addEventListener('click', () => document.querySelector('[data-view="fee"]').click());
+    document.getElementById('upload-docs-link').addEventListener('click', () => window.location.href = 'driver-documents.html');
+
+    async function loadDriverRecord(){
+      const { data } = await window.YellowRide.supabaseClient.from('drivers').select('*').eq('id', currentProfile.id).single();
+      driverRecord = data;
+      isOnline = driverRecord?.availability === 'online';
+      updateToggleUI();
+      document.getElementById('driver-code-chip').textContent = driverRecord?.driver_code || '—';
+    }
+
+    async function refreshFeeStatus(){
+      const { isClearedToday: cleared, status } = await window.YellowRide.getFeeStatusToday(currentProfile.id);
+      isClearedToday = cleared;
+      renderFeeStatusCard(status, cleared);
+      updateToggleUI();
+    }
+
+    function renderFeeStatusCard(status, cleared){
+      const card = document.getElementById('fee-status-card');
+      const title = document.getElementById('fee-status-title');
+      const sub = document.getElementById('fee-status-sub');
+      const icon = card.querySelector('.fee-status-icon i');
+
+      if(cleared){
+        card.className = 'fee-status-card cleared';
+        icon.className = 'fa-solid fa-circle-check';
+        title.textContent = "You're cleared for today";
+        sub.textContent = 'You can go online and accept rides.';
+      } else if(status === 'pending'){
+        card.className = 'fee-status-card pending';
+        icon.className = 'fa-solid fa-hourglass-half';
+        title.textContent = 'Payment pending review';
+        sub.textContent = "An admin is reviewing your submission — you'll be cleared once approved.";
+      } else if(status === 'rejected'){
+        card.className = 'fee-status-card none';
+        icon.className = 'fa-solid fa-circle-xmark';
+        title.textContent = 'Payment rejected';
+        sub.textContent = 'Check your transaction reference and try again.';
+      } else {
+        card.className = 'fee-status-card none';
+        icon.className = 'fa-solid fa-circle-question';
+        title.textContent = "You haven't paid today's fee";
+        sub.textContent = 'Submit your payment below to go online.';
+      }
+
+      document.getElementById('stat-fee-status').textContent = cleared ? 'Paid' : (status === 'pending' ? 'Pending' : 'Unpaid');
+      document.getElementById('stat-fee-status').className = 'stat-value ' + (cleared ? 'green' : 'rust');
+    }
+
+    function renderBanners(){
+      document.getElementById('verify-banner').classList.toggle('show', driverRecord?.verification_status !== 'verified');
+      document.getElementById('fee-banner').classList.toggle('show', driverRecord?.verification_status === 'verified' && !isClearedToday);
+    }
+
+    function renderStats(){
+      if(!driverRecord) return;
+      document.getElementById('stat-trips').textContent = driverRecord.total_trips || 0;
+      document.getElementById('stat-rating').textContent = driverRecord.rating_avg ? driverRecord.rating_avg.toFixed(1) : '—';
+      const stars = Math.round(driverRecord.rating_avg || 0);
+      document.getElementById('rating-stars').textContent = '★'.repeat(stars) + '☆'.repeat(5 - stars);
+      document.getElementById('rating-value-text').textContent = (driverRecord.rating_avg || 0).toFixed(1);
+    }
+
+    document.getElementById('availability-switch').addEventListener('click', async () => {
+      if(driverRecord?.verification_status !== 'verified'){
+        alert('Your account must be verified before you can go online.');
+        return;
+      }
+      if(!isClearedToday && !isOnline){
+        alert("You haven't paid today's fee yet. Go to the Daily Fee tab to submit payment.");
+        return;
+      }
+      const targetState = !isOnline;
+      updateToggleUI(true);
+
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timed out — check your connection and try again.')), 8000)
+      );
+      const updatePromise = window.YellowRide.supabaseClient
+        .from('drivers').update({ availability: targetState ? 'online' : 'offline' }).eq('id', currentProfile.id);
+
+      try {
+        const { error } = await Promise.race([updatePromise, timeoutPromise]);
+        if(error) throw error;
+        isOnline = targetState;
+        updateToggleUI();
+        if(isOnline) startLocationSharing(); else stopLocationSharing();
+        renderIdleOrRequest();
+      } catch(err){
+        updateToggleUI();
+        alert('Could not update your status: ' + err.message);
+      }
+    });
+
+    function updateToggleUI(pending){
+      const sw = document.getElementById('availability-switch');
+      const label = document.getElementById('availability-label');
+      if(pending){
+        label.textContent = 'UPDATING…';
+        return;
+      }
+      sw.classList.toggle('online', isOnline);
+      sw.classList.toggle('locked', driverRecord?.verification_status !== 'verified' || !isClearedToday);
+      label.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
+    }
+
+    function startLocationSharing(){
+      if(!navigator.geolocation) return;
+      locationWatchId = navigator.geolocation.watchPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        window.YellowRide.updateDriverLocation(currentProfile.id, latitude, longitude);
+        if(selfMarker) selfMarker.setLatLng([latitude, longitude]);
+        else { selfMarker = L.marker([latitude, longitude]).addTo(map); map.setView([latitude, longitude], 15); }
+      }, (err) => console.warn(err.message), { enableHighAccuracy:true, maximumAge:10000 });
+    }
+    function stopLocationSharing(){ if(locationWatchId !== null){ navigator.geolocation.clearWatch(locationWatchId); locationWatchId = null; } }
+
+    function subscribeToIncomingRequests(){
+      window.YellowRide.supabaseClient.channel('incoming-rides')
+        .on('postgres_changes', { event:'INSERT', schema:'public', table:'rides', filter:'status=eq.requested' }, (payload) => {
+          if(isOnline && !activeRideId && !incomingRideId) showIncomingRequest(payload.new);
+        }).subscribe();
+
+      setInterval(pollForMissedRequests, 6000);
+    }
+
+    async function pollForMissedRequests(){
+      if(!isOnline || activeRideId || incomingRideId) return;
+      const { data } = await window.YellowRide.supabaseClient
+        .from('rides').select('*').eq('status', 'requested').is('driver_id', null)
+        .order('requested_at', { ascending: true }).limit(1);
+      if(data && data.length > 0){
+        showIncomingRequest(data[0]);
+      }
+    }
+
+    function showIncomingRequest(ride){
+      incomingRideId = ride.id;
+      document.getElementById('dashboard-body').innerHTML = `
+        <div class="request-card">
+          <div class="request-card-top"><span>New Ride Request</span><span>${new Date(ride.requested_at).toLocaleTimeString()}</span></div>
+          <div class="route-line">
+            <div class="route-point"><i class="fa-solid fa-circle-dot" style="color:var(--yellow);"></i> ${escapeHtml(ride.pickup_address)}</div>
+            <div class="route-point"><i class="fa-solid fa-location-dot" style="color:var(--green);"></i> ${escapeHtml(ride.dropoff_address)}</div>
+            ${ride.distance_km ? `<div class="route-point" style="color:var(--muted); font-size:12.5px;"><i class="fa-solid fa-ruler"></i> ~${ride.distance_km.toFixed(1)} km</div>` : ''}
+          </div>
+          <div class="request-actions">
+            <button class="btn-accept" id="accept-btn">Accept</button>
+            <button class="btn-decline" id="decline-btn">Decline</button>
+          </div>
+        </div>`;
+      document.getElementById('accept-btn').addEventListener('click', () => acceptRide(ride.id));
+      document.getElementById('decline-btn').addEventListener('click', () => { incomingRideId = null; renderIdleOrRequest(); });
+    }
+
+    async function acceptRide(rideId){
+      const { data, error } = await window.YellowRide.supabaseClient.from('rides')
+        .update({ driver_id: currentProfile.id, status: 'accepted', accepted_at: new Date().toISOString() })
+        .eq('id', rideId).eq('status', 'requested').select().single();
+
+      incomingRideId = null;
+      if(error || !data){ alert('This ride was already accepted by another driver.'); renderIdleOrRequest(); return; }
+
+      activeRideId = data.id;
+      await window.YellowRide.supabaseClient.from('drivers').update({ availability: 'on_trip' }).eq('id', currentProfile.id);
+      showActiveTrip(data);
+      subscribeToActiveRideChanges(data.id);
+    }
+
+    async function showActiveTrip(ride){
+      const { data: passengerProfile } = await window.YellowRide.supabaseClient
+        .from('profiles').select('full_name, phone_number').eq('id', ride.passenger_id).single();
+
+      const statusLabels = { accepted:'Accepted', driver_arriving:'Arriving', in_progress:'In progress' };
+
+      document.getElementById('dashboard-body').innerHTML = `
+        <div class="active-trip-card">
+          <span class="status-badge">${statusLabels[ride.status] || ride.status}</span>
+          <div class="passenger-info">
+            <div class="passenger-avatar">${getInitials(passengerProfile?.full_name)}</div>
+            <div>
+              <div class="passenger-name">${escapeHtml(passengerProfile?.full_name || 'Client')}</div>
+              <div class="passenger-meta">${escapeHtml(passengerProfile?.phone_number || '')}</div>
+            </div>
+          </div>
+          <div class="route-line">
+            <div class="route-point"><i class="fa-solid fa-circle-dot" style="color:var(--yellow);"></i> ${escapeHtml(ride.pickup_address)}</div>
+            <div class="route-point"><i class="fa-solid fa-location-dot" style="color:var(--green);"></i> ${escapeHtml(ride.dropoff_address)}</div>
+          </div>
+          <div class="trip-actions" id="trip-actions"></div>
+        </div>`;
+      renderTripActionButtons(ride, passengerProfile?.phone_number);
+      showTripOnMap(ride);
+    }
+
+    function showTripOnMap(ride){
+      if(pickupMarker) map.removeLayer(pickupMarker);
+      if(dropoffMarker) map.removeLayer(dropoffMarker);
+      if(ride.pickup_lat) pickupMarker = L.marker([ride.pickup_lat, ride.pickup_lng]).addTo(map);
+      if(ride.dropoff_lat) dropoffMarker = L.marker([ride.dropoff_lat, ride.dropoff_lng]).addTo(map);
+    }
+
+    function renderTripActionButtons(ride, passengerPhone){
+      const container = document.getElementById('trip-actions');
+      container.innerHTML = '';
+      if(ride.status === 'accepted') addAction(container, 'Mark Arriving', 'primary', () => updateRideStatus(ride.id, 'driver_arriving'));
+      else if(ride.status === 'driver_arriving') addAction(container, 'Start Trip', 'primary', () => updateRideStatus(ride.id, 'in_progress', { started_at: new Date().toISOString() }));
+      else if(ride.status === 'in_progress') addAction(container, 'Complete Trip', 'primary', () => completeTrip(ride.id));
+
+      if(passengerPhone){
+        addAction(container, 'Call Passenger', '', () => { window.location.href = `tel:${passengerPhone}`; });
+        addAction(container, 'Message', '', () => { window.location.href = `sms:${passengerPhone}`; });
+      } else {
+        addAction(container, 'Call Passenger', '', () => alert("This passenger's phone number isn't available."));
+      }
+
+      addAction(container, 'Cancel Trip', 'danger', () => openCancelModal(ride.id));
+    }
+    function addAction(container, label, cls, handler){
+      const btn = document.createElement('button');
+      btn.textContent = label;
+      if(cls) btn.classList.add(cls);
+      btn.addEventListener('click', handler);
+      container.appendChild(btn);
+    }
+
+    async function updateRideStatus(rideId, status, extra = {}){
+      const { data, error } = await window.YellowRide.supabaseClient.from('rides').update({ status, ...extra }).eq('id', rideId).select().single();
+      if(!error && data) showActiveTrip(data);
+    }
+
+    async function completeTrip(rideId){
+      await window.YellowRide.supabaseClient.from('rides').update({ status:'completed', completed_at: new Date().toISOString() }).eq('id', rideId);
+      await window.YellowRide.supabaseClient.from('drivers').update({ availability:'online', total_trips: (driverRecord.total_trips || 0) + 1 }).eq('id', currentProfile.id);
+
+      activeRideId = null;
+      if(rideChannelUnsubscribe) rideChannelUnsubscribe();
+      await loadDriverRecord();
+      renderStats();
+      await loadTripHistory();
+      renderIdleOrRequest();
+    }
+
+    let cancelTargetRideId = null;
+    let selectedCancelReason = null;
+    function openCancelModal(rideId){
+      cancelTargetRideId = rideId;
+      selectedCancelReason = null;
+      document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
+      document.getElementById('cancel-modal-confirm').disabled = true;
+      document.getElementById('cancel-modal').classList.add('show');
+    }
+    document.querySelectorAll('#cancel-reason-options .reason-option').forEach(opt => {
+      opt.addEventListener('click', () => {
+        document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
+        opt.classList.add('selected');
+        selectedCancelReason = opt.querySelector('input').value;
+        document.getElementById('cancel-modal-confirm').disabled = false;
+      });
+    });
+    document.getElementById('cancel-modal-dismiss').addEventListener('click', () => document.getElementById('cancel-modal').classList.remove('show'));
+    document.getElementById('cancel-modal-confirm').addEventListener('click', async () => {
+      if(!cancelTargetRideId || !selectedCancelReason) return;
+      await window.YellowRide.supabaseClient.from('rides').update({
+        status:'cancelled', cancel_reason: selectedCancelReason, cancelled_by: currentProfile.id, cancelled_at: new Date().toISOString()
+      }).eq('id', cancelTargetRideId);
+
+      document.getElementById('cancel-modal').classList.remove('show');
+      await window.YellowRide.supabaseClient.from('drivers').update({ availability:'online' }).eq('id', currentProfile.id);
+      activeRideId = null;
+      if(rideChannelUnsubscribe) rideChannelUnsubscribe();
+      renderIdleOrRequest();
+    });
+
+    function subscribeToActiveRideChanges(rideId){
+      if(rideChannelUnsubscribe) rideChannelUnsubscribe();
+      rideChannelUnsubscribe = window.YellowRide.subscribeToRide(rideId, (updatedRide) => {
+        if(updatedRide.status === 'cancelled'){ activeRideId = null; renderIdleOrRequest(); }
+        else showActiveTrip(updatedRide);
+      });
+    }
+
+    async function checkForActiveTrip(){
+      const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
+        .eq('driver_id', currentProfile.id).in('status', ['accepted','driver_arriving','in_progress']).limit(1);
+      if(data && data.length > 0){
+        activeRideId = data[0].id;
+        showActiveTrip(data[0]);
+        subscribeToActiveRideChanges(data[0].id);
+      }
+    }
+
+    function renderIdleOrRequest(){
+      if(activeRideId || incomingRideId) return;
+      if(pickupMarker){ map.removeLayer(pickupMarker); pickupMarker = null; }
+      if(dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
+      document.getElementById('dashboard-body').innerHTML = isOnline
+        ? `<div class="idle-state"><i class="fa-solid fa-satellite-dish"></i><p>You're online. Waiting for a ride request…</p></div>`
+        : `<div class="idle-state"><i class="fa-solid fa-power-off"></i><p>You're offline. Go online to start receiving ride requests.</p></div>`;
+    }
+
+    async function loadTripHistory(){
+      const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
+        .eq('driver_id', currentProfile.id).eq('status', 'completed').order('completed_at', { ascending: false }).limit(15);
+      const listEl = document.getElementById('history-list');
+      if(!data || data.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i>No completed trips yet.</div>`; return; }
+      listEl.innerHTML = data.map(ride => `
+        <div class="history-item">
+          <div class="history-top"><span class="history-route">${escapeHtml(ride.pickup_address)} → ${escapeHtml(ride.dropoff_address)}</span></div>
+          <div class="history-meta">${new Date(ride.completed_at).toLocaleDateString()}${ride.distance_km ? ' · ~' + ride.distance_km.toFixed(1) + ' km' : ''}</div>
+        </div>`).join('');
+    }
+
+    async function loadPlatformFeeSettings(){
+      const { data } = await window.YellowRide.supabaseClient.from('platform_settings').select('*').in('key', ['driver_daily_fee','platform_momo_number']);
+      const fee = data?.find(s => s.key === 'driver_daily_fee');
+      const momo = data?.find(s => s.key === 'platform_momo_number');
+      if(fee?.value?.amount) document.getElementById('fee-amount').value = fee.value.amount;
+      if(momo?.value?.number) document.getElementById('momo-number').textContent = `${momo.value.number} (${momo.value.name || 'YellowRide'})`;
+    }
+    loadPlatformFeeSettings();
+
+    document.getElementById('submit-fee-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('submit-fee-btn');
+      const statusEl = document.getElementById('fee-submit-status');
+      const amount = parseFloat(document.getElementById('fee-amount').value);
+      const reference = document.getElementById('fee-reference').value.trim();
+
+      if(!amount || !reference){
+        statusEl.style.color = 'var(--rust)';
+        statusEl.textContent = 'Enter the amount and transaction reference.';
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      const result = await window.YellowRide.submitFeePayment(currentProfile.id, amount, reference);
+
+      btn.disabled = false;
+      btn.textContent = 'Submit Payment';
+
+      if(!result.success){
+        statusEl.style.color = 'var(--rust)';
+        statusEl.textContent = result.error;
+        return;
+      }
+      statusEl.style.color = 'var(--green)';
+      statusEl.textContent = 'Submitted! Waiting for admin approval.';
+
+      // Alert admin immediately — driver may pay while no admin is logged in to see it.
+      notifyAdmin(
+        `New daily fee payment — ${driverRecord?.driver_code || currentProfile.id}`,
+        `Driver ${currentProfile.full_name || ''} (${driverRecord?.driver_code || 'no code yet'}) submitted a payment of GH₵ ${amount.toFixed(2)} with reference "${reference}". Go review it in the admin dashboard.`
+      );
+
+      await refreshFeeStatus();
+      renderBanners();
+      await loadFeeHistory();
+    });
+
+    async function loadFeeHistory(){
+      const history = await window.YellowRide.getFeePaymentHistory(currentProfile.id);
+      const listEl = document.getElementById('fee-history-list');
+      if(!history || history.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-receipt"></i>No payments submitted yet.</div>`; return; }
+      listEl.innerHTML = history.map(p => `
+        <div class="fee-history-item">
+          <span>${p.payment_date} · GH₵ ${parseFloat(p.amount).toFixed(2)} · <span style="color:var(--muted); font-family:'JetBrains Mono',monospace;">${escapeHtml(p.momo_transaction_reference || '')}</span></span>
+          <span class="pill ${p.status}">${p.status}</span>
+        </div>`).join('');
+    }
+
+    document.getElementById('avatar-btn').addEventListener('click', () => {
+      if(confirm('Log out of YellowRide?')){
+        stopLocationSharing();
+        window.YellowRide.logoutUser().then(() => window.location.href = 'login.html');
+      }
+    });
+  </script>
+</body>
+</html>
