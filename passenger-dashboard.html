@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>YellowGo Ride — Passenger Dashboard</title>
+<title>YellowRide — Passenger Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -755,13 +755,48 @@
         </div>`).join('');
     }
 
+    // ============ NOTIFICATION SOUND ============
+    // Uses the Web Audio API to generate a short two-tone chime — no external
+    // sound file needed. Browsers block audio before any user interaction, so
+    // the AudioContext is created lazily on the passenger's first tap anywhere
+    // on the page, then reused for every notification after that.
+    let audioCtx = null;
+    function initAudioContext(){
+      if(!audioCtx){
+        try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+        catch(err){ console.warn('Web Audio not available:', err); }
+      }
+    }
+    document.addEventListener('click', initAudioContext, { once: true });
+
+    function playNotificationSound(){
+      if(!audioCtx) return; // no user interaction yet — browser would block it anyway
+      const now = audioCtx.currentTime;
+      [880, 1175].forEach((freq, i) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = now + i * 0.12;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
+        osc.connect(gain).connect(audioCtx.destination);
+        osc.start(start);
+        osc.stop(start + 0.26);
+      });
+    }
+
     function subscribeToNotifications(){
       if(notifChannel) notifChannel.unsubscribe();
       notifChannel = window.YellowRide.supabaseClient.channel('passenger-notifications')
         .on('postgres_changes', {
           event: 'INSERT', schema: 'public', table: 'notifications',
           filter: `user_id=eq.${currentProfile.id}`
-        }, () => loadNotifications())
+        }, () => {
+          playNotificationSound();
+          loadNotifications();
+        })
         .subscribe();
     }
 
