@@ -496,12 +496,11 @@
     // would never catch that, so we check `error` directly.
     async function notifyPassenger(passengerId, title, body){
       const { error } = await window.YellowRide.supabaseClient.from('notifications').insert({
-        user_id: passengerId, title, body
+        user_id: passengerId, title, body, message: body, type: 'ride_update'
       });
       if(error){
         console.warn('Could not send passenger notification:', error);
         // TEMPORARY — remove this alert once notifications are confirmed working.
-        // It's here only so the real error is visible on a phone without dev tools.
         alert('DEBUG — notification insert failed: ' + error.message);
       }
     }
