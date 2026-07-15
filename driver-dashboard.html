@@ -491,15 +491,18 @@
     }
 
     // Inserts a row into `notifications` for the passenger on this ride.
-    // Failures here are logged but never block the ride-status update itself —
-    // a notification not sending shouldn't stop a driver from completing a trip.
+    // NOTE: supabase-js does NOT throw on a blocked insert (e.g. RLS denial) —
+    // it returns { data: null, error: {...} } quietly. A try/catch alone
+    // would never catch that, so we check `error` directly.
     async function notifyPassenger(passengerId, title, body){
-      try{
-        await window.YellowRide.supabaseClient.from('notifications').insert({
-          user_id: passengerId, title, body
-        });
-      } catch(err){
-        console.warn('Could not send passenger notification:', err);
+      const { error } = await window.YellowRide.supabaseClient.from('notifications').insert({
+        user_id: passengerId, title, body
+      });
+      if(error){
+        console.warn('Could not send passenger notification:', error);
+        // TEMPORARY — remove this alert once notifications are confirmed working.
+        // It's here only so the real error is visible on a phone without dev tools.
+        alert('DEBUG — notification insert failed: ' + error.message);
       }
     }
 
