@@ -490,6 +490,19 @@
       document.getElementById('decline-btn').addEventListener('click', () => { incomingRideId = null; renderIdleOrRequest(); });
     }
 
+    // Inserts a row into `notifications` for the passenger on this ride.
+    // Failures here are logged but never block the ride-status update itself —
+    // a notification not sending shouldn't stop a driver from completing a trip.
+    async function notifyPassenger(passengerId, title, body){
+      try{
+        await window.YellowRide.supabaseClient.from('notifications').insert({
+          user_id: passengerId, title, body
+        });
+      } catch(err){
+        console.warn('Could not send passenger notification:', err);
+      }
+    }
+
     async function acceptRide(rideId){
       const { data, error } = await window.YellowRide.supabaseClient.from('rides')
         .update({ driver_id: currentProfile.id, status: 'accepted', accepted_at: new Date().toISOString() })
@@ -500,6 +513,7 @@
 
       activeRideId = data.id;
       await window.YellowRide.supabaseClient.from('drivers').update({ availability: 'on_trip' }).eq('id', currentProfile.id);
+      notifyPassenger(data.passenger_id, 'Driver is on the way', `${currentProfile.full_name || 'Your driver'} accepted your ride and is heading to pickup.`);
       showActiveTrip(data);
       subscribeToActiveRideChanges(data.id);
     }
@@ -561,14 +575,26 @@
       container.appendChild(btn);
     }
 
+    const STATUS_NOTIFICATION_TEXT = {
+      driver_arriving: ['Your driver is arriving', 'Your driver is nearly at the pickup point.'],
+      in_progress: ['Trip started', 'Your trip is now in progress. Enjoy the ride!'],
+    };
+
     async function updateRideStatus(rideId, status, extra = {}){
       const { data, error } = await window.YellowRide.supabaseClient.from('rides').update({ status, ...extra }).eq('id', rideId).select().single();
-      if(!error && data) showActiveTrip(data);
+      if(!error && data){
+        showActiveTrip(data);
+        const notif = STATUS_NOTIFICATION_TEXT[status];
+        if(notif) notifyPassenger(data.passenger_id, notif[0], notif[1]);
+      }
     }
 
     async function completeTrip(rideId){
-      await window.YellowRide.supabaseClient.from('rides').update({ status:'completed', completed_at: new Date().toISOString() }).eq('id', rideId);
+      const { data } = await window.YellowRide.supabaseClient.from('rides')
+        .update({ status:'completed', completed_at: new Date().toISOString() }).eq('id', rideId).select().single();
       await window.YellowRide.supabaseClient.from('drivers').update({ availability:'online', total_trips: (driverRecord.total_trips || 0) + 1 }).eq('id', currentProfile.id);
+
+      if(data) notifyPassenger(data.passenger_id, 'Trip complete', 'Your trip is complete. Thanks for riding with YellowGo Ride — tap to rate your driver.');
 
       activeRideId = null;
       if(rideChannelUnsubscribe) rideChannelUnsubscribe();
@@ -598,9 +624,11 @@
     document.getElementById('cancel-modal-dismiss').addEventListener('click', () => document.getElementById('cancel-modal').classList.remove('show'));
     document.getElementById('cancel-modal-confirm').addEventListener('click', async () => {
       if(!cancelTargetRideId || !selectedCancelReason) return;
-      await window.YellowRide.supabaseClient.from('rides').update({
+      const { data } = await window.YellowRide.supabaseClient.from('rides').update({
         status:'cancelled', cancel_reason: selectedCancelReason, cancelled_by: currentProfile.id, cancelled_at: new Date().toISOString()
-      }).eq('id', cancelTargetRideId);
+      }).eq('id', cancelTargetRideId).select().single();
+
+      if(data) notifyPassenger(data.passenger_id, 'Ride cancelled', 'Your driver had to cancel this trip. Please request a new ride.');
 
       document.getElementById('cancel-modal').classList.remove('show');
       await window.YellowRide.supabaseClient.from('drivers').update({ availability:'online' }).eq('id', currentProfile.id);
