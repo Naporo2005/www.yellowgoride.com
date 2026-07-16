@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo Ride — Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+--charcoal: #161512;
+--white: #FFFCF5;
+--yellow: #FFC93C;
+--green: #0B6E4F;
+--rust: #C4432B;
+--line: #E8E1CF;
+--muted: #8a8577;
+--text: #161512;
+}
+*{box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{font-family: 'Inter',sans-serif;
+background: var(--white);
+color: var(--text);
+}
+@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
+transition-duration: 0.01ms !important;
+}}
+
+.shell{display: grid;
+grid-template-columns: 220px 1fr;
+min-height: 100vh;
+}
+
+.menu-toggle{ display: none;
+background: none;
+border: none;
+color: var(--white);
+font-size: 19px;
+cursor: pointer;
+padding: 6px;
+}
+
+@media (max-width:860px){
+.shell{grid-template-columns: 1fr;
+}
+.sidebar{position: sticky;
+top: 0;
+z-index: 20;
+padding: 14px 16px;
+flex-direction: row;
+align-items: center;
+flex-wrap: wrap;
+}
+.sidebar .brand{padding: 0;
+margin-right: auto;
+}
+.menu-toggle{display: block;
+}
+.nav-list{
+display: none;
+flex-direction: column;
+width: 100%;
+order: 3;
+margin-top: 14px;
+padding-top: 14px;
+border-top: 1px solid #2a281f;
+}
+.nav-list.open{display: flex;
+}
+.sidebar-footer{ display: none;
+width: 100%;
+order: 4;
+margin-top: 14px;
+padding-top: 14px;
+}
+.sidebar-footer.open{display: block;
+}
+}
+
+.nav-list{display: flex;
+flex-direction: column;
+}
+
+.sidebar{background: var(--charcoal);
+color: var(--white);
+padding: 22px 16px;
+display: flex;
+flex-direction: column;
+}
+.brand{display: flex;
+align-items: center;
+gap: 9px;
+font-family: 'Sora',sans-serif;
+font-weight: 800;
+font-size: 18px;
+padding: 0 8px 26px;
+}
+.brand .dot{width: 9px;
+height: 9px;
+border-radius: 50%;
+background: var(--yellow);
+}
+.nav-item{ display: flex;
+align-items: center;
+gap: 10px;
+padding: 11px 12px;
+border-radius: 9px;
+font-size: 13.5px;
+font-weight: 500;
+color: #c9c5b8;
+cursor: pointer;
+margin-bottom: 2px;
+position: relative;
+}
+.nav-item i{width: 16px;
+font-size: 14px;
+}
+.nav-item:hover{background: #242219;
+color: var(--white);
+}
+.nav-item.active{background: var(--yellow);
+color: var(--charcoal);
+font-weight: 600;
+}
+.nav-item .count-pill{ margin-left: auto;
+background: var(--rust);
+color: var(--white);
+font-size: 10.5px;
+font-family: 'JetBrains Mono',monospace;
+padding: 1px 7px;
+border-radius: 999px;
+}
+.nav-item.active .count-pill{background: var(--charcoal);
+color: var(--yellow);
+}
+.sidebar-footer{margin-top: auto;
+padding-top: 16px;
+border-top: 1px solid #2a281f;
+}
+.admin-chip{display: flex;
+align-items: center;
+gap: 9px;
+font-size: 12.5px;
+color: #c9c5b8;
+padding: 8px;
+}
+.admin-avatar{width: 28px;
+height: 28px;
+border-radius: 50%;
+background: var(--yellow);
+color: var(--charcoal);
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 11px;
+}
+.logout-link{font-size: 12px;
+color: var(--rust);
+cursor: pointer;
+padding: 8px;
+display: block;
+}
+
+.content{padding: 28px 32px;
+overflow-x: hidden;
+}
+.view{display: none;
+}
+.view.active{display: block;
+}
+
+h1.view-title{font-family: 'Sora',sans-serif;
+font-size: 23px;
+font-weight: 700;
+margin-bottom: 4px;
+color: var(--text);
+}
+.view-sub{font-size: 13.5px;
+color: var(--muted);
+margin-bottom: 24px;
+}
+
+.stats-grid{display: grid;
+grid-template-columns: repeat(4,1fr);
+gap: 14px;
+margin-bottom: 30px;
+}
+@media (max-width:760px){ .stats-grid{grid-template-columns: 1fr 1fr;
+} }
+.stat-card{border: 1.5px solid var(--line);
+border-radius: 14px;
+padding: 16px;
+}
+.stat-label{font-size: 11.5px;
+color: var(--muted);
+font-family: 'JetBrains Mono',monospace;
+margin-bottom: 6px;
+text-transform: uppercase;
+}
+.stat-value{font-family: 'Sora',sans-serif;
+font-size: 24px;
+font-weight: 700;
+color: var(--text);
+}
+
+.panel{border: 1.5px solid var(--line);
+border-radius: 14px;
+overflow: hidden;
+margin-bottom: 24px;
+}
+.panel-head{padding: 14px 18px;
+border-bottom: 1px solid var(--line);
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 14.5px;
+display: flex;
+justify-content: space-between;
+align-items: center;
+color: var(--text);
+}
+
+table{width: 100%;
+border-collapse: collapse;
+font-size: 13.5px;
+}
+th{text-align: left;
+padding: 10px 18px;
+font-size: 11px;
+color: var(--muted);
+font-family: 'JetBrains Mono',monospace;
+text-transform: uppercase;
+border-bottom: 1px solid var(--line);
+}
+td{padding: 12px 18px;
+border-bottom: 1px solid var(--line);
+vertical-align: middle;
+color: var(--text);
+}
+tr:last-child td{border-bottom: none;
+}
+
+.pill{font-family: 'JetBrains Mono',monospace;
+font-size: 10.5px;
+font-weight: 500;
+padding: 3px 9px;
+border-radius: 999px;
+text-transform: uppercase;
+letter-spacing: 0.02em;
+}
+.pill.active, .pill.approved, .pill.verified, .pill.resolved{background: rgba(11,110,79,0.12);
+color: var(--green);
+}
+.pill.pending, .pill.open{background: rgba(255,201,60,0.2);
+color: #9c7300;
+}
+.pill.suspended, .pill.rejected, .pill.banned, .pill.cancelled{background: rgba(196,67,43,0.12);
+color: var(--rust);
+}
+
+.table-btn{padding: 6px 12px;
+border-radius: 7px;
+border: 1.5px solid var(--line);
+background: none;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+color: var(--text);
+margin-right: 6px;
+}
+.table-btn:hover{background: #F8F6EE;
+}
+.table-btn.danger{border-color: rgba(196,67,43,0.3);
+color: var(--rust);
+}
+.table-btn.danger:hover{background: rgba(196,67,43,0.06);
+}
+.table-btn.success{border-color: rgba(11,110,79,0.3);
+color: var(--green);
+}
+.table-btn.success:hover{background: rgba(11,110,79,0.06);
+}
+
+.empty-row td{text-align: center;
+color: var(--muted);
+padding: 30px;
+font-size: 13px;
+}
+
+.settings-field{display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 14px 18px;
+border-bottom: 1px solid var(--line);
+gap: 16px;
+flex-wrap: wrap;
+}
+.settings-field:last-child{border-bottom: none;
+}
+.settings-field label{font-size: 13.5px;
+font-weight: 600;
+color: var(--text);
+}
+.settings-field .settings-desc{font-size: 12px;
+color: var(--muted);
+margin-top: 2px;
+}
+.settings-field input{width: 180px;
+padding: 9px 12px;
+border: 1.5px solid var(--line);
+border-radius: 8px;
+font-size: 13.5px;
+text-align: right;
+font-family: 'JetBrains Mono',monospace;
+background: var(--white);
+color: var(--text);
+}
+.settings-field input:focus{outline: none;
+border-color: var(--green);
+}
+.btn-primary{padding: 10px 20px;
+background: var(--yellow);
+color: var(--charcoal);
+border: none;
+border-radius: 9px;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 13.5px;
+cursor: pointer;
+}
+
+.search-bar{margin-bottom: 16px;
+}
+.search-bar input{width: 100%;
+max-width: 320px;
+padding: 10px 14px;
+border: 1.5px solid var(--line);
+border-radius: 9px;
+font-size: 13.5px;
+background: var(--white);
+color: var(--text);
+}
+.search-bar input:focus{outline: none;
+border-color: var(--green);
+}
+
+@media (prefers-color-scheme: dark){
+:root{ --text: #F1EDE0;
+}
+body{background: #0F0E0C;
+}
+.stat-card, .panel, th, td{border-color: #2A2820;
+}
+.table-btn{border-color: #2A2820;
+}
+.settings-field input{background: #1B1A16;
+border-color: #2A2820;
+}
+.search-bar input{background: #1B1A16;
+border-color: #2A2820;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="shell">
+<div class="sidebar">
+<div class="brand">
+<span class="dot"></span>YellowGo Ride
+</div>
+<button class="menu-toggle" id="menu-toggle" aria-label="Toggle menu"><i class="fa-solid fa-bars"></i></button>
+
+<div class="nav-list" id="nav-list">
+<div class="nav-item active" data-view="overview">
+<i class="fa-solid fa-chart-line"></i> Overview
+</div>
+<div class="nav-item" data-view="verification">
+<i class="fa-solid fa-id-card-clip"></i> Verification <span class="count-pill" id="verify-count" style="display:none;"></span>
+</div>
+<div class="nav-item" data-view="fees">
+<i class="fa-solid fa-money-bill-wave"></i> Fee Payments <span class="count-pill" id="fee-count" style="display:none;"></span>
+</div>
+<div class="nav-item" data-view="drivers">
+<i class="fa-solid fa-motorcycle"></i> Servers
+</div>
+<div class="nav-item" data-view="passengers">
+<i class="fa-solid fa-users"></i> Clients
+</div>
+<div class="nav-item" data-view="rides">
+<i class="fa-solid fa-route"></i> Rides
+</div>
+<div class="nav-item" data-view="reports">
+<i class="fa-solid fa-flag"></i> Reports <span class="count-pill" id="reports-count" style="display:none;"></span>
+</div>
+<div class="nav-item" data-view="settings">
+<i class="fa-solid fa-sliders"></i> Settings
+</div>
+</div>
+
+<div class="sidebar-footer" id="sidebar-footer">
+<div class="admin-chip">
+<span class="admin-avatar" id="admin-initials">--</span><span id="admin-name">Admin</span>
+</div>
+<span class="logout-link" id="logout-link">Log out</span>
+</div>
+</div>
+
+<div class="content">
+
+<!-- OVERVIEW -->
+<div class="view active" id="view-overview">
+<h1 class="view-title">Platform Overview</h1>
+<p class="view-sub">
+Live snapshot of YellowGo Ride activity.
+</p>
+<div class="stats-grid">
+<div class="stat-card">
+<div class="stat-label">
+Total Clients
+</div>
+<div class="stat-value" id="stat-passengers">
+—
+</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">
+Total Servers
+</div>
+<div class="stat-value" id="stat-drivers">
+—
+</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">
+Rides Today
+</div>
+<div class="stat-value" id="stat-rides-today">
+—
+</div>
+</div>
+<div class="stat-card">
+<div class="stat-label">
+Pending Fee Reviews
+</div>
+<div class="stat-value" id="stat-pending-fees">
+—
+</div>
+</div>
+</div>
+<div class="panel">
+<div class="panel-head">
+Recent Rides
+</div>
+<table>
+<thead>
+<tr><th>Route</th><th>Status</th><th>Distance</th><th>Requested</th></tr>
+</thead>
+<tbody id="recent-rides-body">
+<tr class="empty-row"><td colspan="4">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- VERIFICATION QUEUE -->
+<div class="view" id="view-verification">
+<h1 class="view-title">Server Verification</h1>
+<p class="view-sub">
+Review Ghana Card / ID and selfie uploads. Compare the face in the selfie to the ID photo before approving.
+</p>
+<div class="panel">
+<div class="panel-head">
+Pending Review
+</div>
+<table>
+<thead>
+<tr><th>Server</th><th>Document</th><th>Uploaded</th><th>Status</th><th></th></tr>
+</thead>
+<tbody id="verification-body">
+<tr class="empty-row"><td colspan="5">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- FEE PAYMENTS -->
+<div class="view" id="view-fees">
+<h1 class="view-title">Daily Fee Payments</h1>
+<p class="view-sub">
+Approve driver fee submissions to unlock their ability to go online for the day.
+</p>
+<div class="panel">
+<div class="panel-head">
+Pending Review
+</div>
+<table>
+<thead>
+<tr><th>Server</th><th>Date</th><th>Amount</th><th>Reference</th><th></th></tr>
+</thead>
+<tbody id="fees-body">
+<tr class="empty-row"><td colspan="5">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- DRIVERS -->
+<div class="view" id="view-drivers">
+<h1 class="view-title">Servers</h1>
+<p class="view-sub">
+Manage server accounts.
+</p>
+<div class="search-bar">
+<input type="text" id="driver-search" placeholder="Search by name, code, or ID number…" />
+</div>
+<div class="panel">
+<table>
+<thead>
+<tr><th>Server</th><th>Code</th><th>ID Number</th><th>Verification</th><th>Status</th><th>Rating</th><th>Trips</th><th></th></tr>
+</thead>
+<tbody id="drivers-body">
+<tr class="empty-row"><td colspan="8">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- PASSENGERS -->
+<div class="view" id="view-passengers">
+<h1 class="view-title">Clients</h1>
+<p class="view-sub">
+Manage client accounts.
+</p>
+<div class="search-bar">
+<input type="text" id="passenger-search" placeholder="Search by name or phone…" />
+</div>
+<div class="panel">
+<table>
+<thead>
+<tr><th>Client</th><th>Phone</th><th>Status</th><th>Joined</th><th></th></tr>
+</thead>
+<tbody id="passengers-body">
+<tr class="empty-row"><td colspan="5">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- RIDES -->
+<div class="view" id="view-rides">
+<h1 class="view-title">Rides</h1>
+<p class="view-sub">
+All ride activity across the platform.
+</p>
+<div class="panel">
+<table>
+<thead>
+<tr><th>Route</th><th>Status</th><th>Distance</th><th>Cancel Reason</th><th>Requested</th></tr>
+</thead>
+<tbody id="all-rides-body">
+<tr class="empty-row"><td colspan="5">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- REPORTS -->
+<div class="view" id="view-reports">
+<h1 class="view-title">Reports</h1>
+<p class="view-sub">
+Client and server reports requiring review.
+</p>
+<div class="panel">
+<table>
+<thead>
+<tr><th>Reported</th><th>Reported By</th><th>Reason</th><th>Status</th><th></th></tr>
+</thead>
+<tbody id="reports-body">
+<tr class="empty-row"><td colspan="5">Loading…</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+
+<!-- SETTINGS -->
+<div class="view" id="view-settings">
+<h1 class="view-title">Platform Settings</h1>
+<p class="view-sub">
+Daily fee amount and payment details.
+</p>
+<div class="panel" id="settings-panel"></div>
+</div>
+
+</div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+let currentProfile = null;
+
+(async function init(){
+currentProfile = await window.YellowRide.requireRole('admin');
+if (!currentProfile) return;
+
+document.getElementById('admin-initials').textContent = getInitials(currentProfile.full_name);
+document.getElementById('admin-name').textContent = currentProfile.full_name;
+
+await loadOverview();
+await loadVerificationQueue();
+await loadFeeQueue();
+await loadDrivers();
+await loadPassengers();
+await loadAllRides();
+await loadReports();
+await loadSettings();
+})();
+
+function getInitials(name){ if (!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0, 2).join('').toUpperCase(); }
+function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+
+document.querySelectorAll('.nav-item').forEach(item => {
+item.addEventListener('click', () => {
+document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+item.classList.add('active');
+document.getElementById('view-' + item.dataset.view).classList.add('active');
+// On mobile, collapse the dropdown after picking a section
+document.getElementById('nav-list').classList.remove('open');
+document.getElementById('sidebar-footer').classList.remove('open');
+});
+});
+
+document.getElementById('menu-toggle').addEventListener('click', () => {
+document.getElementById('nav-list').classList.toggle('open');
+document.getElementById('sidebar-footer').classList.toggle('open');
+});
+
+document.getElementById('logout-link').addEventListener('click', () => {
+if (confirm('Log out of the admin dashboard?')){
+window.YellowRide.logoutUser().then(() => window.location.href = 'login.html');
+}
+});
+
+function statusPillClass(status){
+if (['completed', 'active', 'verified', 'approved', 'resolved'].includes(status)) return 'approved';
+if (['requested', 'pending', 'open'].includes(status)) return 'pending';
+if (status.startsWith('cancelled') || ['suspended', 'rejected', 'banned'].includes(status)) return 'rejected';
+return 'pending';
+}
+
+// ============ OVERVIEW ============
+async function loadOverview(){
+const db = window.YellowRide.supabaseClient;
+const [{ count: passengerCount }, { count: driverCount }, { count: pendingFees }] = await Promise.all([
+db.from('passengers').select('*', { count: 'exact', head: true }),
+db.from('drivers').select('*', { count: 'exact', head: true }),
+db.from('driver_fee_payments').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+]);
+document.getElementById('stat-passengers').textContent = passengerCount ?? '0';
+document.getElementById('stat-drivers').textContent = driverCount ?? '0';
+document.getElementById('stat-pending-fees').textContent = pendingFees ?? '0';
+
+const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+const { count: ridesToday } = await db.from('rides').select('*', { count: 'exact', head: true }).gte('requested_at', todayStart.toISOString());
+document.getElementById('stat-rides-today').textContent = ridesToday ?? '0';
+
+const { data: recentRides } = await db.from('rides').select('*').order('requested_at', { ascending: false }).limit(8);
+const body = document.getElementById('recent-rides-body');
+if (!recentRides || recentRides.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="4">No rides yet.</td></tr>`; return; }
+body.innerHTML = recentRides.map(r => `
+<tr>
+<td>${escapeHtml(r.pickup_address)} → ${escapeHtml(r.dropoff_address)}</td>
+<td><span class="pill ${statusPillClass(r.status)}">${r.status.replace(/_/g, ' ')}</span></td>
+<td>${r.distance_km ? r.distance_km.toFixed(1) + ' km': '—'}</td>
+<td>${new Date(r.requested_at).toLocaleString()}</td>
+</tr>`).join('');
+}
+
+// ============ VERIFICATION QUEUE ============
+async function loadVerificationQueue(){
+const db = window.YellowRide.supabaseClient;
+const { data, error } = await db.from('driver_documents').select('*, drivers(driver_code, national_id_number, profiles(full_name))').eq('status', 'pending').order('uploaded_at', { ascending: true });
+
+const body = document.getElementById('verification-body');
+const countPill = document.getElementById('verify-count');
+
+if (error || !data || data.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No documents pending review.</td></tr>`; countPill.style.display = 'none'; return; }
+
+countPill.style.display = 'inline-block';
+countPill.textContent = data.length;
+
+body.innerHTML = data.map(doc => `
+<tr>
+<td>${escapeHtml(doc.drivers?.profiles?.full_name || 'Unknown')} <span style="color:var(--muted); font-size:11.5px;">(${doc.drivers?.driver_code || ''})</span></td>
+<td>${doc.document_type.replace(/_/g, ' ')}</td>
+<td>${new Date(doc.uploaded_at).toLocaleDateString()}</td>
+<td><span class="pill pending">Pending</span></td>
+<td>
+<button class="table-btn success" data-approve="${doc.id}">Approve</button>
+<button class="table-btn danger" data-reject="${doc.id}">Reject</button>
+</td>
+</tr>`).join('');
+
+body.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => reviewDocument(btn.dataset.approve, 'approved')));
+body.querySelectorAll('[data-reject]').forEach(btn => btn.addEventListener('click', () => reviewDocument(btn.dataset.reject, 'rejected')));
+}
+
+async function reviewDocument(docId, decision){
+const db = window.YellowRide.supabaseClient;
+const { data: doc } = await db.from('driver_documents').select('driver_id').eq('id', docId).single();
+
+await db.from('driver_documents').update({ status: decision, reviewed_by: currentProfile.id, reviewed_at: new Date().toISOString() }).eq('id', docId);
+
+if (decision === 'rejected'){
+await db.from('drivers').update({ verification_status: 'rejected' }).eq('id', doc.driver_id);
+} else {
+// Required for verification: national_id + selfie_with_id
+const REQUIRED = ['national_id', 'selfie_with_id'];
+const { data: allDocs } = await db.from('driver_documents').select('document_type, status').eq('driver_id', doc.driver_id);
+const allApproved = REQUIRED.every(t => allDocs.some(d => d.document_type === t && d.status === 'approved'));
+if (allApproved){
+await db.from('drivers').update({ verification_status: 'verified' }).eq('id', doc.driver_id);
+}
+}
+await loadVerificationQueue();
+await loadDrivers();
+await loadOverview();
+}
+
+// ============ FEE PAYMENT QUEUE ============
+async function loadFeeQueue(){
+const db = window.YellowRide.supabaseClient;
+const { data, error } = await db.from('driver_fee_payments').select('*, drivers(driver_code, profiles(full_name))').eq('status', 'pending').order('submitted_at', { ascending: true });
+
+const body = document.getElementById('fees-body');
+const countPill = document.getElementById('fee-count');
+
+if (error || !data || data.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No fee payments pending review.</td></tr>`; countPill.style.display = 'none'; return; }
+
+countPill.style.display = 'inline-block';
+countPill.textContent = data.length;
+
+body.innerHTML = data.map(p => `
+<tr>
+<td>${escapeHtml(p.drivers?.profiles?.full_name || 'Unknown')} <span style="color:var(--muted); font-size:11.5px;">(${p.drivers?.driver_code || ''})</span></td>
+<td>${p.payment_date}</td>
+<td>GH₵ ${parseFloat(p.amount).toFixed(2)}</td>
+<td style="font-family:'JetBrains Mono',monospace; font-size:12px;">${escapeHtml(p.momo_transaction_reference || '—')}</td>
+<td>
+<button class="table-btn success" data-approve-fee="${p.id}">Approve</button>
+<button class="table-btn danger" data-reject-fee="${p.id}">Reject</button>
+</td>
+</tr>`).join('');
+
+body.querySelectorAll('[data-approve-fee]').forEach(btn => btn.addEventListener('click', () => reviewFeePayment(btn.dataset.approveFee, 'approved')));
+body.querySelectorAll('[data-reject-fee]').forEach(btn => btn.addEventListener('click', () => reviewFeePayment(btn.dataset.rejectFee, 'rejected')));
+}
+
+async function reviewFeePayment(paymentId, decision){
+const db = window.YellowRide.supabaseClient;
+await db.from('driver_fee_payments').update({ status: decision, reviewed_by: currentProfile.id, reviewed_at: new Date().toISOString() }).eq('id', paymentId);
+await loadFeeQueue();
+await loadOverview();
+}
+
+// ============ DRIVERS TABLE ============
+let allDriversCache = [];
+async function loadDrivers(){
+const db = window.YellowRide.supabaseClient;
+const { data } = await db.from('drivers').select('*, profiles(full_name, status)').order('created_at', { ascending: false });
+allDriversCache = data || [];
+renderDriversTable(allDriversCache);
+}
+
+function renderDriversTable(list){
+const body = document.getElementById('drivers-body');
+if (!list || list.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="8">No servers yet.</td></tr>`; return; }
+body.innerHTML = list.map(d => `
+<tr>
+<td>${escapeHtml(d.profiles?.full_name || 'Unknown')}</td>
+<td style="font-family:'JetBrains Mono',monospace; font-size:12px;">${d.driver_code}</td>
+<td style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:var(--muted);">${escapeHtml(d.national_id_number || '—')}</td>
+<td><span class="pill ${statusPillClass(d.verification_status)}">${d.verification_status}</span></td>
+<td><span class="pill ${d.profiles?.status === 'active' ? 'active': 'suspended'}">${d.profiles?.status || 'active'}</span></td>
+<td>${d.rating_avg ? d.rating_avg.toFixed(1): '—'}</td>
+<td>${d.total_trips || 0}</td>
+<td>${d.profiles?.status === 'suspended'
+? `<button class="table-btn success" data-reactivate="${d.id}">Reactivate</button>`: `<button class="table-btn danger" data-suspend="${d.id}">Suspend</button>`}</td>
+</tr>`).join('');
+
+body.querySelectorAll('[data-suspend]').forEach(btn => btn.addEventListener('click', () => setAccountStatus(btn.dataset.suspend, 'suspended', loadDrivers)));
+body.querySelectorAll('[data-reactivate]').forEach(btn => btn.addEventListener('click', () => setAccountStatus(btn.dataset.reactivate, 'active', loadDrivers)));
+}
+
+document.getElementById('driver-search').addEventListener('input', (e) => {
+const q = e.target.value.toLowerCase();
+renderDriversTable(allDriversCache.filter(d =>
+(d.profiles?.full_name || '').toLowerCase().includes(q) ||
+(d.driver_code || '').toLowerCase().includes(q) ||
+(d.national_id_number || '').toLowerCase().includes(q)
+));
+});
+
+// ============ PASSENGERS TABLE ============
+let allPassengersCache = [];
+async function loadPassengers(){
+const db = window.YellowRide.supabaseClient;
+const { data } = await db.from('passengers').select('*, profiles(full_name, phone_number, status, created_at)').order('created_at', { ascending: false });
+allPassengersCache = data || [];
+renderPassengersTable(allPassengersCache);
+}
+
+function renderPassengersTable(list){
+const body = document.getElementById('passengers-body');
+if (!list || list.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No clients yet.</td></tr>`; return; }
+body.innerHTML = list.map(p => `
+<tr>
+<td>${escapeHtml(p.profiles?.full_name || 'Unknown')}</td>
+<td>${escapeHtml(p.profiles?.phone_number || '—')}</td>
+<td><span class="pill ${p.profiles?.status === 'active' ? 'active': 'suspended'}">${p.profiles?.status || 'active'}</span></td>
+<td>${p.profiles?.created_at ? new Date(p.profiles.created_at).toLocaleDateString(): '—'}</td>
+<td>${p.profiles?.status === 'suspended'
+? `<button class="table-btn success" data-reactivate="${p.id}">Reactivate</button>`: `<button class="table-btn danger" data-suspend="${p.id}">Suspend</button>`}</td>
+</tr>`).join('');
+
+body.querySelectorAll('[data-suspend]').forEach(btn => btn.addEventListener('click', () => setAccountStatus(btn.dataset.suspend, 'suspended', loadPassengers)));
+body.querySelectorAll('[data-reactivate]').forEach(btn => btn.addEventListener('click', () => setAccountStatus(btn.dataset.reactivate, 'active', loadPassengers)));
+}
+
+document.getElementById('passenger-search').addEventListener('input', (e) => {
+const q = e.target.value.toLowerCase();
+renderPassengersTable(allPassengersCache.filter(p =>
+(p.profiles?.full_name || '').toLowerCase().includes(q) || (p.profiles?.phone_number || '').toLowerCase().includes(q)
+));
+});
+
+async function setAccountStatus(userId, status, refreshFn){
+if (!confirm(`Set this account to "${status}"?`)) return;
+await window.YellowRide.supabaseClient.from('profiles').update({ status }).eq('id', userId);
+await refreshFn();
+}
+
+// ============ RIDES TABLE ============
+async function loadAllRides(){
+const db = window.YellowRide.supabaseClient;
+const { data } = await db.from('rides').select('*').order('requested_at', { ascending: false }).limit(50);
+const body = document.getElementById('all-rides-body');
+if (!data || data.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No rides yet.</td></tr>`; return; }
+body.innerHTML = data.map(r => `
+<tr>
+<td>${escapeHtml(r.pickup_address)} → ${escapeHtml(r.dropoff_address)}</td>
+<td><span class="pill ${statusPillClass(r.status)}">${r.status.replace(/_/g, ' ')}</span></td>
+<td>${r.distance_km ? r.distance_km.toFixed(1) + ' km': '—'}</td>
+<td>${r.cancel_reason ? r.cancel_reason.replace(/_/g, ' '): '—'}</td>
+<td>${new Date(r.requested_at).toLocaleString()}</td>
+</tr>`).join('');
+}
+
+// ============ REPORTS ============
+async function loadReports(){
+const db = window.YellowRide.supabaseClient;
+const { data } = await db.from('reports').select('*, reported:reported_user(full_name), reporter:reported_by(full_name)').order('created_at', { ascending: false });
+
+const body = document.getElementById('reports-body');
+const countPill = document.getElementById('reports-count');
+const openCount = (data || []).filter(r => r.status === 'open').length;
+countPill.style.display = openCount > 0 ? 'inline-block': 'none';
+countPill.textContent = openCount;
+
+if (!data || data.length === 0){ body.innerHTML = `<tr class="empty-row"><td colspan="5">No reports filed.</td></tr>`; return; }
+
+body.innerHTML = data.map(r => `
+<tr>
+<td>${escapeHtml(r.reported?.full_name || 'Unknown')}</td>
+<td>${escapeHtml(r.reporter?.full_name || 'Unknown')}</td>
+<td>${escapeHtml(r.reason)}</td>
+<td><span class="pill ${statusPillClass(r.status)}">${r.status.replace(/_/g, ' ')}</span></td>
+<td>${r.status === 'open' ? `
+<button class="table-btn success" data-resolve="${r.id}">Resolve</button>
+<button class="table-btn danger" data-dismiss="${r.id}">Dismiss</button>`: ''}</td>
+</tr>`).join('');
+
+body.querySelectorAll('[data-resolve]').forEach(btn => btn.addEventListener('click', () => resolveReport(btn.dataset.resolve, 'resolved')));
+body.querySelectorAll('[data-dismiss]').forEach(btn => btn.addEventListener('click', () => resolveReport(btn.dataset.dismiss, 'dismissed')));
+}
+
+async function resolveReport(reportId, status){
+await window.YellowRide.supabaseClient.from('reports').update({ status, resolved_by: currentProfile.id, resolved_at: new Date().toISOString() }).eq('id', reportId);
+await loadReports();
+}
+
+// ============ SETTINGS ============
+async function loadSettings(){
+const db = window.YellowRide.supabaseClient;
+const { data } = await db.from('platform_settings').select('*');
+const panel = document.getElementById('settings-panel');
+
+if (!data || data.length === 0){ panel.innerHTML = `<div style="padding:20px; color:var(--muted); font-size:13px;">No settings found.</div>`; return; }
+
+panel.innerHTML = '';
+data.forEach(setting => {
+const row = document.createElement('div');
+row.className = 'settings-field';
+
+if (setting.key === 'driver_daily_fee'){
+row.innerHTML = `
+<div><label>Driver daily fee (GH₵)</label><div class="settings-desc">Amount each server must pay to go online each day</div></div>
+<input type="number" step="0.01" data-key="driver_daily_fee" data-field="amount" value="${setting.value.amount}" />`;
+} else if (setting.key === 'platform_momo_number'){
+row.innerHTML = `
+<div><label>Platform MoMo number</label><div class="settings-desc">Where drivers send their daily fee</div></div>
+<input type="text" data-key="platform_momo_number" data-field="number" value="${setting.value.number}" style="text-align:left;" />`;
+} else {
+row.innerHTML = `<div><label>${setting.key}</label></div><input type="text" data-key="${setting.key}" value="${JSON.stringify(setting.value)}" />`;
+}
+panel.appendChild(row);
+});
+
+const saveRow = document.createElement('div');
+saveRow.style.padding = '16px 18px';
+saveRow.innerHTML = `<button class="btn-primary" id="save-settings-btn">Save Settings</button> <span id="settings-save-status" style="font-size:12.5px; margin-left:10px;"></span>`;
+panel.appendChild(saveRow);
+
+document.getElementById('save-settings-btn').addEventListener('click', async () => {
+const statusEl = document.getElementById('settings-save-status');
+const inputs = panel.querySelectorAll('input[data-key]');
+for (const input of inputs){
+const key = input.dataset.key;
+const field = input.dataset.field;
+const current = data.find(s => s.key === key);
+const newValue = { ...current.value, [field]: field === 'amount' ? parseFloat(input.value): input.value };
+await db.from('platform_settings').update({ value: newValue, updated_by: currentProfile.id, updated_at: new Date().toISOString() }).eq('key', key);
+}
+statusEl.style.color = 'var(--green)';
+statusEl.textContent = 'Settings saved.';
+});
+}
+</script>
+</body>
+</html>
