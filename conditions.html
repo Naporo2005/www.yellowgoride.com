@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo Ride — Terms & Conditions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+:root{
+--charcoal: #161512;
+--white: #FFFCF5;
+--yellow: #FFC93C;
+--green: #0B6E4F;
+--rust: #C4432B;
+--line: #E8E1CF;
+--muted: #6b6656;
+--text: #161512;
+}
+*{box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{ font-family: 'Inter',sans-serif;
+color: var(--text);
+background: var(--white);
+min-height: 100vh;
+}
+@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
+transition-duration: 0.01ms !important;
+}}
+
+.topnav{ display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 16px 28px;
+background: var(--charcoal);
+color: var(--white);
+}
+.brand{display: flex;
+align-items: center;
+gap: 9px;
+font-family: 'Sora',sans-serif;
+font-weight: 800;
+font-size: 19px;
+}
+.brand .dot{width: 9px;
+height: 9px;
+border-radius: 50%;
+background: var(--yellow);
+}
+.back-link{color: var(--white);
+text-decoration: none;
+font-size: 13px;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.back-link:hover{color: var(--yellow);
+}
+svg{
+width: 30px;
+height: 30px;
+}
+.page-wrap{ max-width: 720px;
+margin: 0 auto;
+padding: 40px 24px 80px;
+}
+
+.page-header{ margin-bottom: 28px;
+}
+.page-header h1{ font-family: 'Sora',sans-serif;
+font-size: 28px;
+font-weight: 700;
+margin-bottom: 8px;
+}
+.page-header p{ color: var(--muted);
+font-size: 14px;
+}
+
+/* Passenger / Driver switch — same visual language as the login page role-switch */
+.role-switch{
+display: flex;
+background: #F1EDE0;
+border-radius: 999px;
+padding: 4px;
+margin-bottom: 32px;
+position: sticky;
+top: 16px;
+z-index: 10;
+box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.role-switch button{
+flex: 1;
+padding: 12px 0;
+border: none;
+background: none;
+border-radius: 999px;
+cursor: pointer;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 14px;
+color: var(--muted);
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 8px;
+transition: background .2s, color .2s;
+}
+.role-switch button.active{ background: var(--charcoal);
+color: var(--white);
+}
+
+.terms-panel{ display: none;
+}
+.terms-panel.active{ display: block;
+animation: fadeIn .25s ease;
+}
+@keyframes fadeIn{ from{opacity: 0;
+transform: translateY(6px);
+} to{opacity: 1;
+transform: translateY(0);
+} }
+
+.effective-date{
+background: #F8F6EE;
+border: 1px dashed var(--line);
+border-radius: 10px;
+padding: 12px 14px;
+font-size: 12.5px;
+color: var(--muted);
+margin-bottom: 26px;
+}
+
+section{ margin-bottom: 28px;
+}
+section:last-child{ margin-bottom: 0;
+}
+h2{
+font-family: 'Sora',sans-serif;
+font-size: 17px;
+font-weight: 700;
+margin-bottom: 9px;
+display: flex;
+align-items: baseline;
+gap: 10px;
+}
+h2 .num{
+font-family: 'JetBrains Mono',monospace;
+font-size: 12.5px;
+color: var(--yellow);
+background: var(--charcoal);
+padding: 3px 8px;
+border-radius: 6px;
+flex-shrink: 0;
+}
+p{ color: #3a362c;
+font-size: 14.5px;
+line-height: 1.7;
+margin-bottom: 8px;
+}
+ul{ margin: 8px 0 0 20px;
+color: #3a362c;
+font-size: 14.5px;
+line-height: 1.7;
+}
+li{ margin-bottom: 5px;
+}
+strong{ color: var(--text);
+}
+
+.footer-note{
+margin-top: 40px;
+padding-top: 24px;
+border-top: 1px solid var(--line);
+font-size: 12.5px;
+color: var(--muted);
+text-align: center;
+}
+
+@media (prefers-color-scheme: dark){
+:root{ --text: #F1EDE0;
+}
+body{ background: #0F0E0C;
+}
+.role-switch{ background: #211F1A;
+}
+p, ul{ color: #cfc9ba;
+}
+.effective-date{ background: #1B1A16;
+border-color: #2A2820;
+}
+.footer-note{ border-color: #2A2820;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+<div class="brand">
+<span class="dot"></span>YellowGo Ride
+</div>
+<a href="login.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to login</a>
+</div>
+
+<div class="page-wrap">
+<div class="page-header">
+<h1>Terms & Conditions</h1>
+<p>
+One set of terms for passengers, one for drivers — pick the one that applies to you below.
+</p>
+</div>
+
+<div class="role-switch" role="tablist" aria-label="Terms type">
+<button class="active" id="tab-passenger" role="tab" aria-selected="true">
+<i class="fa-solid fa-user"></i> Passenger Terms
+</button>
+<button id="tab-driver" role="tab" aria-selected="false">
+<i class="fa-solid fa-motorcycle"></i> Driver Terms
+</button>
+</div>
+
+<!-- ============ PASSENGER TERMS ============ -->
+<div class="terms-panel active" id="panel-passenger">
+<div class="effective-date">
+Effective date: 16 July 2026 · Applies to all passengers using YellowGo Ride in Accra, Kumasi, and Tamale.
+</div>
+
+<section>
+<h2><span class="num">1</span>What YellowGo Ride is</h2>
+<p>
+YellowGo Ride is a platform that connects passengers with independent tricycle drivers. We help you find a nearby driver and track your trip — we are not the driver, and we do not own or operate the tricycles used on trips booked through the app.
+</p>
+</section>
+
+<section>
+<h2><span class="num">2</span>Your account</h2>
+<p>
+You need a valid phone number to create an account. You're responsible for keeping your password secure and for all activity under your account. Let us know right away if you think someone else has accessed it.
+</p>
+</section>
+
+<section>
+<h2><span class="num">3</span>Requesting a ride</h2>
+<p>
+When you request a ride, we share your pickup location (detected automatically from your device) and your typed destination with a nearby available driver. Once a driver accepts, you'll see their name, driver code, and live location until your trip ends.
+</p>
+</section>
+
+<section>
+<h2><span class="num">4</span>Fares are agreed directly with your driver</h2>
+<p>
+YellowGo Ride does not set or collect ride fares. You and your driver agree the price together, in person, before or during the trip, and you pay your driver directly — by cash or Mobile Money, whatever you both agree on. We add no commission or booking fee on top of your fare.
+</p>
+</section>
+
+<section>
+<h2><span class="num">5</span>Cancellations</h2>
+<p>
+You can cancel a ride request before a driver arrives. Repeated last-minute cancellations may affect your ability to request rides in the future, since it takes drivers away from other passengers.
+</p>
+</section>
+
+<section>
+<h2><span class="num">6</span>Conduct and safety</h2>
+<p>
+Treat your driver with respect. You can rate your trip and report any safety concerns, unsafe driving, or inappropriate behavior directly through the app after your ride. We review all reports and may suspend accounts — passenger or driver — that violate this.
+</p>
+</section>
+
+<section>
+<h2><span class="num">7</span>Location data</h2>
+<p>
+We use your device's location to set your pickup point and to show your driver's live position during an active trip. Location access can be turned off in your device settings, but you'll need to enter a pickup location manually if you do.
+</p>
+</section>
+
+<section>
+<h2><span class="num">8</span>Liability</h2>
+<p>
+Drivers on YellowGo Ride are independent and not our employees. While we verify driver identity and vehicle details before approval, we are not responsible for the conduct of drivers during a trip, or for the condition of their vehicle. Use common judgment, and report anything that doesn't feel right.
+</p>
+</section>
+
+<section>
+<h2><span class="num">9</span>Changes to these terms</h2>
+<p>
+We may update these terms as YellowGo Ride grows. If we make a significant change, we'll let you know in the app before it takes effect.
+</p>
+</section>
+
+<section>
+<h2><span class="num">10</span>Contact</h2>
+<p>
+Questions about these terms, or anything about your account, can be sent through the app's support contact or to our admin team directly.
+</p>
+<p>
+<span>Email:</span> yellowgoride@gmail.com
+</p>
+<p>
+<span>Call / WhatsApp:</span> +233 555 358 325
+</p>
+</section>
+</div>
+
+<!-- ============ DRIVER TERMS ============ -->
+<div class="terms-panel" id="panel-driver">
+<div class="effective-date">
+Effective date: 16 July 2026 · Applies to all drivers using YellowGo Ride in Accra, Kumasi, and Tamale.
+</div>
+
+<section>
+<h2><span class="num">1</span>What YellowGo Ride is</h2>
+<p>
+YellowGo Ride is a platform that connects independent tricycle drivers with nearby passengers. You are an independent driver, not an employee, contractor, or agent of YellowGo Ride. You choose when to go online, which requests to accept, and how you operate your vehicle.
+</p>
+</section>
+
+<section>
+<h2><span class="num">2</span>Verification requirements</h2>
+<p>
+Before you can go online and accept rides, you must submit:
+</p>
+<ul>
+<li>A clear photo of your Ghana Card or other national ID</li>
+<li>A selfie of yourself holding that ID</li>
+<li>Your vehicle's plate number, model, and color</li>
+</ul>
+<p>
+Verification is typically reviewed within 24 hours. We may reject or later revoke verification if documents are unclear, expired, or don't match your account details.
+</p>
+</section>
+
+<section>
+<h2><span class="num">3</span>The daily fee</h2>
+<p>
+To go online each day, you pay a flat daily fee via Mobile Money and submit your transaction reference for admin approval. This is a flat fee for platform access — <strong>YellowGo Ride does not take a percentage or commission from any fare you earn.</strong> Fees paid are non-refundable once submitted, except where an admin determines a payment was submitted in error.
+</p>
+</section>
+
+<section>
+<h2><span class="num">4</span>Fares are agreed directly with your passenger</h2>
+<p>
+You and your passenger agree the fare together — YellowGo Ride does not set, suggest, or collect ride fares. Payment happens directly between you and the passenger, by cash or Mobile Money, however you both agree.
+</p>
+</section>
+
+<section>
+<h2><span class="num">5</span>Accepting and completing trips</h2>
+<p>
+Once you accept a request, mark your status accurately as you approach, start, and complete the trip — passengers rely on this to know where you are. If you need to cancel a trip after accepting, use the in-app cancellation and select an honest reason; repeated cancellations may affect your standing on the platform.
+</p>
+</section>
+
+<section>
+<h2><span class="num">6</span>Conduct and safety</h2>
+<p>
+You're expected to drive safely, treat passengers with respect, and maintain your vehicle in safe working condition. Passengers can rate you and report safety concerns after each trip. Verified reports of unsafe driving, harassment, or dishonest conduct may result in suspension or permanent removal from the platform.
+</p>
+</section>
+
+<section>
+<h2><span class="num">7</span>Location data</h2>
+<p>
+While you're online, your live location is shared with passengers who've been matched with you, so they can track your approach. Location sharing stops automatically when you go offline.
+</p>
+</section>
+
+<section>
+<h2><span class="num">8</span>Ratings and standing</h2>
+<p>
+Your average rating is calculated automatically from passenger reviews and shown on your profile. Consistently low ratings, unresolved reports, or fee payments that repeatedly fail review may result in restricted access to the platform.
+</p>
+</section>
+
+<section>
+<h2><span class="num">9</span>Liability</h2>
+<p>
+As an independent driver, you are responsible for your vehicle, your driving, and compliance with any local licensing or transport regulations that apply to you. YellowGo Ride is a platform that connects you with passengers — it does not own your vehicle, employ you, or assume liability for incidents during a trip.
+</p>
+</section>
+
+<section>
+<h2><span class="num">10</span>Changes to these terms</h2>
+<p>
+We may update these terms as YellowGo Ride grows, including fee amounts or verification requirements. We'll notify drivers in the app before significant changes take effect.
+</p>
+</section>
+
+<section>
+<h2><span class="num">11</span>Contact</h2>
+<p>
+Questions about these terms, your verification status, or fee payments can be
+sent through the app's support contact or directly to our admin team.
+</p>
+<p>
+<span>Email:</span> yellowgoride@gmail.com
+</p>
+<p>
+<span>Call / WhatsApp:</span> +233 555 358 325
+</p>
+</section>
+</div>
+
+<div class="footer-note">
+YellowGo Ride · Accra · Kumasi · Tamale
+</div>
+</div>
+
+<script>
+const tabPassenger = document.getElementById('tab-passenger');
+const tabDriver = document.getElementById('tab-driver');
+const panelPassenger = document.getElementById('panel-passenger');
+const panelDriver = document.getElementById('panel-driver');
+
+function showPanel(which){
+const isPassenger = which === 'passenger';
+tabPassenger.classList.toggle('active', isPassenger);
+tabDriver.classList.toggle('active', !isPassenger);
+tabPassenger.setAttribute('aria-selected', isPassenger);
+tabDriver.setAttribute('aria-selected', !isPassenger);
+panelPassenger.classList.toggle('active', isPassenger);
+panelDriver.classList.toggle('active', !isPassenger);
+window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+tabPassenger.addEventListener('click', () => showPanel('passenger'));
+tabDriver.addEventListener('click', () => showPanel('driver'));
+
+// Optional: open directly to a specific tab via ?role=driver in the URL
+const params = new URLSearchParams(window.location.search);
+if (params.get('role') === 'driver') showPanel('driver');
+</script>
+</body>
+</html>
