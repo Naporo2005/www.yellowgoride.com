@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo Ride — Log in or Sign up</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+--charcoal: #161512;
+--white: #FFFCF5;
+--yellow: #FFC93C;
+--green: #0B6E4F;
+--rust: #C4432B;
+--line: #E8E1CF;
+--muted: #8a8577;
+--text: #161512;
+}
+*{box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{ font-family: 'Inter',sans-serif;
+color: var(--text);
+background: var(--white);
+min-height: 100vh;
+display: flex;
+}
+@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
+transition-duration: 0.01ms !important;
+}}
+
+/* ================= LEFT BRAND PANEL ================= */
+.brand-panel{
+position: relative;
+flex: 1 1 46%;
+background: var(--charcoal);
+color: var(--white);
+display: flex;
+flex-direction: column;
+justify-content: space-between;
+padding: 48px 44px;
+overflow: hidden;
+min-height: 100vh;
+}
+.brand-mark{display: flex;
+align-items: center;
+gap: 10px;
+font-family: 'Sora',sans-serif;
+font-weight: 800;
+font-size: 22px;
+letter-spacing: -0.02em;
+z-index: 2;
+}
+.brand-mark .dot{width: 10px;
+height: 10px;
+border-radius: 50%;
+background: var(--yellow);
+}
+.brand-copy{z-index: 2;
+max-width: 420px;
+}
+.brand-copy h1{font-family: 'Sora',sans-serif;
+font-size: clamp(30px,4vw,42px);
+line-height: 1.12;
+font-weight: 700;
+letter-spacing: -0.01em;
+}
+.brand-copy h1 span{color: var(--yellow);
+}
+.brand-copy p{margin-top: 14px;
+color: #c9c5b8;
+font-size: 15px;
+line-height: 1.55;
+}
+.brand-footer{z-index: 2;
+display: flex;
+gap: 22px;
+font-size: 13px;
+color: #8f8a7c;
+font-family: 'JetBrains Mono',monospace;
+}
+
+.route-stage{position: absolute;
+inset: 0;
+z-index: 1;
+}
+.route-svg{width: 100%;
+height: 100%;
+}
+.route-path{fill: none;
+stroke: #3a382f;
+stroke-width: 2;
+stroke-dasharray: 6 10;
+stroke-linecap: round;
+}
+.route-path-progress{fill: none;
+stroke: var(--green);
+stroke-width: 2.5;
+stroke-linecap: round;
+stroke-dasharray: 900;
+stroke-dashoffset: 900;
+animation: draw 7s ease-in-out infinite;
+}
+@keyframes draw{0%{stroke-dashoffset: 900;
+}55%{stroke-dashoffset: 0;
+}100%{stroke-dashoffset: 0;
+}}
+.tricycle{offset-path: path("M 40 420 C 140 380, 160 300, 260 300 S 380 220, 420 160 S 520 60, 600 60");
+animation: ride 7s ease-in-out infinite;
+}
+@keyframes ride{0%{offset-distance: 0%;
+opacity: 0;
+}4%{opacity: 1;
+}55%{offset-distance: 100%;
+opacity: 1;
+}60%{opacity: 0;
+}100%{opacity: 0;
+offset-distance: 100%;
+}}
+
+/* ================= RIGHT FORM PANEL ================= */
+.form-panel{flex: 1 1 54%;
+display: flex;
+align-items: center;
+justify-content: center;
+padding: 40px 28px;
+overflow-y: auto;
+}
+.form-wrap{width: 100%;
+max-width: 420px;
+}
+
+/* Role switch — chosen FIRST, before anything else */
+.role-switch{display: flex;
+background: #F1EDE0;
+border-radius: 999px;
+padding: 4px;
+margin-bottom: 28px;
+}
+.role-switch button{
+flex: 1;
+padding: 11px 0;
+border: none;
+background: none;
+border-radius: 999px;
+cursor: pointer;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 13.5px;
+color: var(--muted);
+display: flex;
+align-items: center;
+justify-content: center;
+gap: 7px;
+transition: background .2s, color .2s;
+}
+.role-switch button.active{background: var(--charcoal);
+color: var(--white);
+}
+
+.tabs{display: flex;
+background: #F1EDE0;
+border-radius: 999px;
+padding: 4px;
+margin-bottom: 28px;
+}
+.tab{
+flex: 1;
+text-align: center;
+padding: 10px 0;
+font-family: 'Sora',sans-serif;
+font-weight: 600;
+font-size: 14px;
+border-radius: 999px;
+cursor: pointer;
+color: var(--muted);
+transition: background .2s, color .2s;
+user-select: none;
+}
+.tab.active{background: var(--charcoal);
+color: var(--white);
+}
+.tab:focus-visible{outline: 2px solid var(--green);
+outline-offset: 2px;
+}
+
+h2.form-title{font-family: 'Sora',sans-serif;
+font-size: 24px;
+font-weight: 700;
+margin-bottom: 6px;
+color: var(--text);
+}
+.form-sub{font-size: 14px;
+color: var(--muted);
+margin-bottom: 26px;
+}
+
+.field{margin-bottom: 16px;
+}
+.field label{display: block;
+font-size: 13px;
+font-weight: 600;
+margin-bottom: 6px;
+color: var(--text);
+}
+.field input{
+width: 100%;
+padding: 12px 14px;
+border: 1.5px solid var(--line);
+border-radius: 10px;
+font-size: 14px;
+font-family: 'Inter',sans-serif;
+background: var(--white);
+color: var(--text);
+transition: border-color .15s, box-shadow .15s;
+}
+.field input:focus{outline: none;
+border-color: var(--green);
+box-shadow: 0 0 0 3px rgba(11,110,79,0.12);
+}
+
+.password-wrap{position: relative;
+}
+.password-wrap input{padding-right: 42px;
+}
+.password-toggle{
+position: absolute;
+right: 12px;
+top: 50%;
+transform: translateY(-50%);
+background: none;
+border: none;
+cursor: pointer;
+color: var(--muted);
+font-size: 15px;
+padding: 4px;
+display: flex;
+align-items: center;
+}
+.password-toggle:hover{color: var(--text);
+}
+
+.field-hint{font-size: 11.5px;
+color: var(--muted);
+margin-top: 5px;
+}
+
+.btn-primary{
+width: 100%;
+padding: 13px 0;
+background: var(--yellow);
+color: var(--charcoal);
+border: none;
+border-radius: 10px;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 15px;
+cursor: pointer;
+transition: transform .12s, box-shadow .12s;
+margin-top: 6px;
+}
+.btn-primary:hover{box-shadow: 0 6px 16px rgba(255,201,60,0.35);
+}
+.btn-primary:active{transform: scale(0.98);
+}
+.btn-primary:disabled{opacity: 0.6;
+cursor: not-allowed;
+}
+
+.status-msg1{
+margin-top: 8px;
+margin-bottom: 7px;
+padding: 5px 14px;
+border-radius: 8px;
+font-size: 16px;
+}
+.status-msg1 a{
+font-size: 17px;
+color: var(--green);
+text-decoration: underline;
+}
+
+.status-msg{margin-top: 16px;
+margin-bottom: 7px;
+padding: 10px 14px;
+border-radius: 8px;
+font-size: 13px;
+display: none;
+}
+.status-msg.error{display: block;
+background: rgba(196,67,43,0.08);
+color: var(--rust);
+border: 1px solid rgba(196,67,43,0.25);
+}
+.status-msg.success{display: block;
+background: rgba(11,110,79,0.08);
+color: var(--green);
+border: 1px solid rgba(11,110,79,0.25);
+}
+
+.spinner{
+width: 16px;
+height: 16px;
+border: 2px solid rgba(22,21,18,0.25);
+border-top-color: var(--charcoal);
+border-radius: 50%;
+display: inline-block;
+animation: spin .7s linear infinite;
+vertical-align: middle;
+margin-right: 8px;
+}
+@keyframes spin{to{transform: rotate(360deg);
+}}
+
+.panel-form{display: none;
+}
+.panel-form.active{display: block;
+}
+
+@media (prefers-color-scheme: dark){
+:root{ --text: #F1EDE0;
+}
+body{background: #0F0E0C;
+color: var(--text);
+}
+.field input{background: #1B1A16;
+border-color: #33312A;
+color: var(--text);
+}
+.tabs, .role-switch{background: #211F1A;
+}
+.form-sub{color: #9c9686;
+}
+}
+
+@media (max-width: 860px){
+body{flex-direction: column;
+}
+.brand-panel{min-height: 240px;
+padding: 32px 24px;
+}
+.brand-copy p{display: none;
+}
+.brand-footer{display: none;
+}
+.form-panel{padding: 32px 20px;
+}
+}
+
+/* ================= EMBEDDED TERMS SHEET ================= */
+.terms-backdrop{
+position: fixed;
+inset: 0;
+z-index: 1000;
+background: rgba(22,21,18,0);
+display: flex;
+align-items: flex-end;
+justify-content: center;
+pointer-events: none;
+transition: background .32s ease;
+}
+.terms-backdrop.open{
+background: rgba(22,21,18,0.55);
+backdrop-filter: blur(6px);
+-webkit-backdrop-filter: blur(6px);
+pointer-events: auto;
+}
+.terms-sheet{
+background: var(--white);
+width: 100%;
+max-width: 640px;
+max-height: 86vh;
+border-radius: 22px 22px 0 0;
+display: flex;
+flex-direction: column;
+overflow: hidden;
+box-shadow: 0 -20px 50px rgba(0,0,0,0.25);
+transform: translateY(100%);
+transition: transform .38s cubic-bezier(.2,.8,.2,1);
+}
+.terms-backdrop.open .terms-sheet{ transform: translateY(0);
+}
+
+.terms-sheet-handle{
+width: 40px;
+height: 4px;
+border-radius: 999px;
+background: var(--line);
+margin: 12px auto 0;
+flex-shrink: 0;
+}
+.terms-header{
+padding: 16px 24px 16px;
+display: flex;
+align-items: flex-start;
+justify-content: space-between;
+gap: 14px;
+flex-shrink: 0;
+border-bottom: 1px solid var(--line);
+}
+.terms-header .eyebrow{
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+letter-spacing: 0.08em;
+color: var(--green);
+text-transform: uppercase;
+margin-bottom: 4px;
+display: block;
+}
+.terms-header h2{ font-family: 'Sora', sans-serif;
+font-size: 19px;
+font-weight: 700;
+color: var(--text);
+}
+.terms-close-btn{
+flex-shrink: 0;
+width: 34px;
+height: 34px;
+border-radius: 50%;
+border: none;
+background: #F1EDE0;
+color: var(--text);
+font-size: 14px;
+cursor: pointer;
+display: flex;
+align-items: center;
+justify-content: center;
+transition: background .15s, transform .15s;
+}
+.terms-close-btn:hover{ background: var(--line);
+transform: rotate(90deg);
+}
+
+.terms-body{
+padding: 20px 24px;
+overflow-y: auto;
+flex: 1;
+font-size: 14px;
+line-height: 1.65;
+color: var(--text);
+}
+.terms-body section{ margin-bottom: 22px;
+}
+.terms-body section:last-child{ margin-bottom: 4px;
+}
+.terms-body h3{
+font-family: 'Sora', sans-serif;
+font-size: 14.5px;
+font-weight: 700;
+margin-bottom: 6px;
+display: flex;
+align-items: baseline;
+gap: 8px;
+}
+.terms-body h3 .num{
+font-family: 'JetBrains Mono', monospace;
+font-size: 11px;
+color: var(--yellow);
+background: var(--charcoal);
+padding: 2px 6px;
+border-radius: 5px;
+flex-shrink: 0;
+}
+.terms-body p{ color: #3a362c;
+margin-bottom: 6px;
+}
+.terms-body ul{ margin: 6px 0 0 20px;
+color: #3a362c;
+}
+.terms-body li{ margin-bottom: 4px;
+}
+.terms-body strong{ color: var(--text);
+}
+.terms-effective-date{
+background: #F8F6EE;
+border: 1px dashed var(--line);
+border-radius: 10px;
+padding: 10px 13px;
+font-size: 12px;
+color: var(--muted);
+margin-bottom: 18px;
+}
+
+.terms-footer{
+padding: 14px 24px 20px;
+border-top: 1px solid var(--line);
+flex-shrink: 0;
+background: var(--white);
+}
+.terms-footer-close{
+width: 100%;
+padding: 13px 0;
+background: none;
+border: 1.5px solid var(--line);
+border-radius: 10px;
+font-family: 'Sora', sans-serif;
+font-weight: 600;
+font-size: 14px;
+color: var(--text);
+cursor: pointer;
+transition: background .15s;
+}
+.terms-footer-close:hover{ background: #F8F6EE;
+}
+
+@media (prefers-color-scheme: dark){
+.terms-sheet{ background: #161512;
+}
+.terms-header, .terms-footer{ border-color: #2A2820;
+}
+.terms-close-btn{ background: #211F1A;
+color: var(--text);
+}
+.terms-close-btn:hover{ background: #2A2820;
+}
+.terms-body p, .terms-body ul{ color: #cfc9ba;
+}
+.terms-effective-date{ background: #1B1A16;
+border-color: #2A2820;
+}
+.terms-footer-close{ border-color: #2A2820;
+color: var(--text);
+}
+.terms-footer-close:hover{ background: #1B1A16;
+}
+.terms-sheet-handle{ background: #33312A;
+}
+}
+</style>
+</head>
+<body>
+
+<!-- ============ LEFT BRAND PANEL ============ -->
+<div class="brand-panel">
+<div class="brand-mark">
+<span class="dot"></span>YellowGo Ride
+</div>
+<div class="brand-copy">
+<h1>Your ride, <span>tracked live</span>, door to door.</h1>
+<p>
+Request a tricycle, agree the fare directly with your driver, and get where you're going.
+</p>
+</div>
+<div class="brand-footer">
+<span>ACCRA · KUMASI · TAMALE</span>
+<span>PAY YOUR DRIVER DIRECTLY</span>
+</div>
+<div class="route-stage">
+<svg class="route-svg" viewBox="0 0 640 480" preserveAspectRatio="xMidYMid slice">
+<path class="route-path" d="M 40 420 C 140 380, 160 300, 260 300 S 380 220, 420 160 S 520 60, 600 60" />
+<path class="route-path-progress" d="M 40 420 C 140 380, 160 300, 260 300 S 380 220, 420 160 S 520 60, 600 60" />
+<circle class="pin" cx="40" cy="420" r="5" fill="#FFC93C" />
+<circle class="pin" cx="600" cy="60" r="5" fill="#0B6E4F" />
+<text x="52" y="424" fill="#8f8a7c" font-family="JetBrains Mono" font-size="11">pickup</text>
+<text x="480" y="52" fill="#8f8a7c" font-family="JetBrains Mono" font-size="11">drop-off</text>
+</svg>
+<svg class="tricycle" width="26" height="26" viewBox="0 0 24 24" style="position:absolute; top:0; left:0;">
+<circle cx="12" cy="12" r="11" fill="#FFC93C" />
+<path d="M7 15h2l1.5-5H15l1.5 5h1.5M9 15a2 2 0 100 3.5 2 2 0 000-3.5zm7 0a2 2 0 100 3.5 2 2 0 000-3.5z"
+stroke="#161512" stroke-width="1.1" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+</svg>
+</div>
+</div>
+
+<!-- ============ RIGHT FORM PANEL ============ -->
+<div class="form-panel">
+<div class="form-wrap">
+
+<!-- STEP 1: Choose role -->
+<div class="role-switch" role="tablist" aria-label="Account type">
+<button class="active" id="role-passenger" role="tab" aria-selected="true">
+<i class="fa-solid fa-user"></i> Passenger
+</button>
+<button id="role-driver" role="tab" aria-selected="false">
+<i class="fa-solid fa-motorcycle"></i> Driver
+</button>
+</div>
+
+<!-- STEP 2: Login vs Sign up -->
+<div class="tabs" role="tablist">
+<div class="tab active" role="tab" tabindex="0" id="tab-login" aria-selected="true">
+Log in
+</div>
+<div class="tab" role="tab" tabindex="0" id="tab-signup" aria-selected="false">
+Sign up
+</div>
+</div>
+
+<!-- ============ PASSENGER LOGIN ============ -->
+<div class="panel-form active" id="form-passenger-login">
+<h2 class="form-title">Welcome back</h2>
+<p class="form-sub">
+Your next ride is just a tap away. Log in to book a ride and travel safely with
+YellowGo Ride
+</p>
+
+<div class="field">
+<label for="pl-phone">Phone number</label>
+<input type="tel" id="pl-phone" autocomplete="tel" placeholder="024 000 0000" />
+</div>
+<div class="field">
+<label for="pl-password">Password</label>
+<div class="password-wrap">
+<input type="password" id="pl-password" autocomplete="current-password" placeholder="••••••••" />
+<button type="button" class="password-toggle" data-target="pl-password"><i class="fa-solid fa-eye"></i></button>
+</div>
+</div>
+<div class="status-msg" id="passenger-login-status"></div>
+<button class="btn-primary" id="passenger-login-btn">Log in</button>
+<p class="status-msg1" margin-left:13pc;"><a
+href="forget-password.html">Forgot Password?</a>
+</p>
+</div>
+
+<!-- ============ PASSENGER SIGNUP ============ -->
+<div class="panel-form" id="form-passenger-signup">
+<h2 class="form-title">Create your account</h2>
+<p class="form-sub">
+Join YellowGo Ride today. Create an account to book rides, track your trips, and
+travel with confidence.
+</p>
+
+<div class="field">
+<label for="ps-name">Full name</label>
+<input type="text" id="ps-name" autocomplete="name" placeholder="Ama Serwaa" />
+</div>
+<div class="field">
+<label for="ps-phone">Phone number</label>
+<input type="tel" id="ps-phone" autocomplete="tel" placeholder="024 000 0000" />
+</div>
+<div class="field">
+<label for="ps-email">Email <span style="color:var(--muted); font-weight:400;">(optional)</span></label>
+<input type="email" id="ps-email" autocomplete="email" placeholder="you@example.com" />
+</div>
+<div class="field">
+<label for="ps-password">Password</label>
+<div class="password-wrap">
+<input type="password" id="ps-password" autocomplete="new-password" placeholder="At least 8 characters" />
+<button type="button" class="password-toggle" data-target="ps-password"><i class="fa-solid fa-eye"></i></button>
+</div>
+</div>
+<div class="field-hint">
+By creating an account, you agree to YellowGo's <strong><a
+href="terms.html" id="passenger-terms-link">Terms & Conditions.</a></strong>
+</div>
+<div class="status-msg" id="passenger-signup-status"></div>
+<button class="btn-primary" id="passenger-signup-btn">Create account</button>
+</div>
+
+<!-- ============ DRIVER LOGIN ============ -->
+<div class="panel-form" id="form-driver-login">
+<h2 class="form-title">Driver login</h2>
+<p class="form-sub">
+Welcome back, Driver! Log in to go online, manage your trips, and start earning
+with YellowGo Ride.
+</p>
+
+<div class="field">
+<label for="dl-email">Email</label>
+<input type="email" id="dl-email" autocomplete="email" placeholder="you@example.com" />
+</div>
+<div class="field">
+<label for="dl-password">Password</label>
+<div class="password-wrap">
+<input type="password" id="dl-password" autocomplete="current-password" placeholder="••••••••" />
+<button type="button" class="password-toggle" data-target="dl-password"><i class="fa-solid fa-eye"></i></button>
+</div>
+</div>
+<div class="status-msg" id="driver-login-status"></div>
+<button class="btn-primary" id="driver-login-btn">Log in</button>
+<p class="status-msg1" margin-left:13pc;">
+<a
+href="forget-password.html">Forgot Password?</a>
+</p>
+</div>
+
+<!-- ============ DRIVER SIGNUP ============ -->
+<div class="panel-form" id="form-driver-signup">
+<h2 class="form-title">Become a Driver</h2>
+<p class="form-sub">
+Become a Driver Today and Boost Your Chances of Earning More Every Day.
+</p>
+
+<div class="field">
+<label for="ds-name">Full name</label>
+<input type="text" id="ds-name" autocomplete="name" placeholder="Kwame Mensah" />
+</div>
+<div class="field">
+<label for="ds-email">Email</label>
+<input type="email" id="ds-email" autocomplete="email" placeholder="you@example.com" />
+</div>
+<div class="field">
+<label for="ds-phone">Phone number</label>
+<input type="tel" id="ds-phone" autocomplete="tel" placeholder="024 000 0000" />
+</div>
+<div class="field">
+<label for="ds-vehicle">Vehicle plate number</label>
+<input type="text" id="ds-vehicle" placeholder="e.g. NR 2451-24" />
+</div>
+<div class="field">
+<label for="ds-password">Password</label>
+<div class="password-wrap">
+<input type="password" id="ds-password" autocomplete="new-password" placeholder="At least 8 characters" />
+<button type="button" class="password-toggle" data-target="ds-password"><i class="fa-solid fa-eye"></i></button>
+</div>
+</div>
+<div class="field-hint">
+By creating an account, you agree to YellowGo's <strong><a
+href="terms.html" id="driver-terms-link">Terms & Conditions.</a></strong> Complete
+your registration to start driving and earning.
+</div>
+<div class="status-msg" id="driver-signup-status"></div>
+<button class="btn-primary" id="driver-signup-btn">Create account</button>
+</div>
+
+</div>
+</div>
+
+<!-- ============ EMBEDDED TERMS SHEETS ============ -->
+
+<div class="terms-backdrop" id="passenger-terms-backdrop">
+<div class="terms-sheet" role="dialog" aria-modal="true" aria-labelledby="passenger-terms-title">
+<div class="terms-sheet-handle"></div>
+<div class="terms-header">
+<div>
+<span class="eyebrow">YellowGo Ride · Passengers</span>
+<h2 id="passenger-terms-title">Terms & Conditions</h2>
+</div>
+<button class="terms-close-btn" data-close-terms="passenger" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="terms-body">
+<div class="terms-effective-date">
+Effective date: 16 July 2026 · Applies to all passengers using YellowGo Ride in Accra, Kumasi, and Tamale.
+</div>
+<section>
+<h3><span class="num">1</span>What YellowGo Ride is</h3>
+<p>
+YellowGo Ride is a platform that connects passengers with independent tricycle drivers. We help you find a nearby driver and track your trip — we are not the driver, and we do not own or operate the tricycles used on trips booked through the app.
+</p>
+</section>
+<section>
+<h3><span class="num">2</span>Your account</h3>
+<p>
+You need a valid phone number to create an account. You're responsible for keeping your password secure and for all activity under your account. Let us know right away if you think someone else has accessed it.
+</p>
+</section>
+<section>
+<h3><span class="num">3</span>Requesting a ride</h3>
+<p>
+When you request a ride, we share your pickup location (detected automatically from your device) and your typed destination with a nearby available driver. Once a driver accepts, you'll see their name, driver code, and live location until your trip ends.
+</p>
+</section>
+<section>
+<h3><span class="num">4</span>Fares are agreed directly with your driver</h3>
+<p>
+YellowGo Ride does not set or collect ride fares. You and your driver agree the price together, in person, before or during the trip, and you pay your driver directly — by cash or Mobile Money, whatever you both agree on. We add no commission or booking fee on top of your fare.
+</p>
+</section>
+<section>
+<h3><span class="num">5</span>Cancellations</h3>
+<p>
+You can cancel a ride request before a driver arrives. Repeated last-minute cancellations may affect your ability to request rides in the future, since it takes drivers away from other passengers.
+</p>
+</section>
+<section>
+<h3><span class="num">6</span>Conduct and safety</h3>
+<p>
+Treat your driver with respect. You can rate your trip and report any safety concerns, unsafe driving, or inappropriate behavior directly through the app after your ride. We review all reports and may suspend accounts — passenger or driver — that violate this.
+</p>
+</section>
+<section>
+<h3><span class="num">7</span>Location data</h3>
+<p>
+We use your device's location to set your pickup point and to show your driver's live position during an active trip. Location access can be turned off in your device settings, but you'll need to enter a pickup location manually if you do.
+</p>
+</section>
+<section>
+<h3><span class="num">8</span>Liability</h3>
+<p>
+Drivers on YellowGo Ride are independent and not our employees. While we verify driver identity and vehicle details before approval, we are not responsible for the conduct of drivers during a trip, or for the condition of their vehicle. Use common judgment, and report anything that doesn't feel right.
+</p>
+</section>
+<section>
+<h3><span class="num">9</span>Changes to these terms</h3>
+<p>
+We may update these terms as YellowGo Ride grows. If we make a significant change, we'll let you know in the app before it takes effect.
+</p>
+</section>
+<section>
+<h3><span class="num">10</span>Contact</h3>
+<p>
+Questions about these terms, or anything about your account, can be sent through the app's support contact or to our admin team directly.
+</p>
+<p>
+<span>Email:</span> yellowgoride@gmail.com
+</p>
+<p>
+<span>Call / WhatsApp:</span> +233 555 358 325
+</p>
+</section>
+</div>
+<div class="terms-footer">
+<button class="terms-footer-close" data-close-terms="passenger">Close</button>
+</div>
+</div>
+</div>
+
+<div class="terms-backdrop" id="driver-terms-backdrop">
+<div class="terms-sheet" role="dialog" aria-modal="true" aria-labelledby="driver-terms-title">
+<div class="terms-sheet-handle"></div>
+<div class="terms-header">
+<div>
+<span class="eyebrow">YellowGo Ride · Drivers</span>
+<h2 id="driver-terms-title">Terms & Conditions</h2>
+</div>
+<button class="terms-close-btn" data-close-terms="driver" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+</div>
+<div class="terms-body">
+<div class="terms-effective-date">
+Effective date: 16 July 2026 · Applies to all drivers using YellowGo Ride in Accra, Kumasi, and Tamale.
+</div>
+<section>
+<h3><span class="num">1</span>What YellowGo Ride is</h3>
+<p>
+YellowGo Ride is a platform that connects independent tricycle drivers with nearby passengers. You are an independent driver, not an employee, contractor, or agent of YellowGo Ride. You choose when to go online, which requests to accept, and how you operate your vehicle.
+</p>
+</section>
+<section>
+<h3><span class="num">2</span>Verification requirements</h3>
+<p>
+Before you can go online and accept rides, you must submit:
+</p>
+<ul>
+<li>A clear photo of your Ghana Card or other national ID</li>
+<li>A selfie of yourself holding that ID</li>
+<li>Your vehicle's plate number, model, and color</li>
+</ul>
+<p>
+Verification is typically reviewed within 24 hours. We may reject or later revoke verification if documents are unclear, expired, or don't match your account details.
+</p>
+</section>
+<section>
+<h3><span class="num">3</span>The daily fee</h3>
+<p>
+To go online each day, you pay a flat daily fee via Mobile Money and submit your transaction reference for admin approval. This is a flat fee for platform access — <strong>YellowGo Ride does not take a percentage or commission from any fare you earn.</strong> Fees paid are non-refundable once submitted, except where an admin determines a payment was submitted in error.
+</p>
+</section>
+<section>
+<h3><span class="num">4</span>Fares are agreed directly with your passenger</h3>
+<p>
+You and your passenger agree the fare together — YellowGo Ride does not set, suggest, or collect ride fares. Payment happens directly between you and the passenger, by cash or Mobile Money, however you both agree.
+</p>
+</section>
+<section>
+<h3><span class="num">5</span>Accepting and completing trips</h3>
+<p>
+Once you accept a request, mark your status accurately as you approach, start, and complete the trip — passengers rely on this to know where you are. If you need to cancel a trip after accepting, use the in-app cancellation and select an honest reason; repeated cancellations may affect your standing on the platform.
+</p>
+</section>
+<section>
+<h3><span class="num">6</span>Conduct and safety</h3>
+<p>
+You're expected to drive safely, treat passengers with respect, and maintain your vehicle in safe working condition. Passengers can rate you and report safety concerns after each trip. Verified reports of unsafe driving, harassment, or dishonest conduct may result in suspension or permanent removal from the platform.
+</p>
+</section>
+<section>
+<h3><span class="num">7</span>Location data</h3>
+<p>
+While you're online, your live location is shared with passengers who've been matched with you, so they can track your approach. Location sharing stops automatically when you go offline.
+</p>
+</section>
+<section>
+<h3><span class="num">8</span>Ratings and standing</h3>
+<p>
+Your average rating is calculated automatically from passenger reviews and shown on your profile. Consistently low ratings, unresolved reports, or fee payments that repeatedly fail review may result in restricted access to the platform.
+</p>
+</section>
+<section>
+<h3><span class="num">9</span>Liability</h3>
+<p>
+As an independent driver, you are responsible for your vehicle, your driving, and compliance with any local licensing or transport regulations that apply to you. YellowGo Ride is a platform that connects you with passengers — it does not own your vehicle, employ you, or assume liability for incidents during a trip.
+</p>
+</section>
+<section>
+<h3><span class="num">10</span>Changes to these terms</h3>
+<p>
+We may update these terms as YellowGo Ride grows, including fee amounts or verification requirements. We'll notify drivers in the app before significant changes take effect.
+</p>
+</section>
+<section>
+<h3><span class="num">11</span>Contact</h3>
+<p>
+Questions about these terms, your verification status, or fee payments can be sent through the app's support contact or directly to our admin team.
+</p>
+<p>
+<span>Email:</span> yellowgoride@gmail.com
+</p>
+<p>
+<span>Call / WhatsApp:</span> +233 555 358 325
+</p>
+</section>
+</div>
+<div class="terms-footer">
+<button class="terms-footer-close" data-close-terms="driver">Close</button>
+</div>
+</div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+// ---------- Role switching (Client / Server) ----------
+let currentRole = 'passenger';
+const roleBtnPassenger = document.getElementById('role-passenger');
+const roleBtnDriver = document.getElementById('role-driver');
+
+function setRole(role){
+currentRole = role;
+roleBtnPassenger.classList.toggle('active', role === 'passenger');
+roleBtnDriver.classList.toggle('active', role === 'driver');
+roleBtnPassenger.setAttribute('aria-selected', role === 'passenger');
+roleBtnDriver.setAttribute('aria-selected', role === 'driver');
+activateTab(currentTab); // re-render correct form for the new role
+}
+roleBtnPassenger.addEventListener('click', () => setRole('passenger'));
+roleBtnDriver.addEventListener('click', () => setRole('driver'));
+
+// ---------- Login / Sign up tab switching ----------
+let currentTab = 'login';
+const tabLogin = document.getElementById('tab-login');
+const tabSignup = document.getElementById('tab-signup');
+
+const allForms = {
+'passenger-login': document.getElementById('form-passenger-login'),
+'passenger-signup': document.getElementById('form-passenger-signup'),
+'driver-login': document.getElementById('form-driver-login'),
+'driver-signup': document.getElementById('form-driver-signup'),
+};
+
+function activateTab(which){
+currentTab = which;
+const isLogin = which === 'login';
+tabLogin.classList.toggle('active', isLogin);
+tabSignup.classList.toggle('active', !isLogin);
+tabLogin.setAttribute('aria-selected', isLogin);
+tabSignup.setAttribute('aria-selected', !isLogin);
+
+Object.values(allForms).forEach(f => f.classList.remove('active'));
+const key = `${currentRole}-${which}`;
+allForms[key].classList.add('active');
+}
+tabLogin.addEventListener('click', () => activateTab('login'));
+tabSignup.addEventListener('click', () => activateTab('signup'));
+[tabLogin, tabSignup].forEach(t => t.addEventListener('keydown', e => {
+if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); }
+}));
+
+// ---------- Password visibility toggle ----------
+document.querySelectorAll('.password-toggle').forEach(btn => {
+btn.addEventListener('click', () => {
+const input = document.getElementById(btn.dataset.target);
+const icon = btn.querySelector('i');
+const isHidden = input.type === 'password';
+input.type = isHidden ? 'text': 'password';
+icon.className = isHidden ? 'fa-solid fa-eye-slash': 'fa-solid fa-eye';
+});
+});
+
+function showStatus(el, message, type){
+el.textContent = message;
+el.className = 'status-msg ' + type;
+}
+function redirectToRoleDashboard(role){
+const map = { passenger: 'passenger-dashboard.html', driver: 'driver-dashboard.html', admin: 'admin-dashboard.html' };
+window.location.href = map[role] || 'passenger-dashboard.html';
+}
+
+// ---------- Passenger Login ----------
+document.getElementById('passenger-login-btn').addEventListener('click', async () => {
+const btn = document.getElementById('passenger-login-btn');
+const statusEl = document.getElementById('passenger-login-status');
+const phoneNumber = document.getElementById('pl-phone').value.trim();
+const password = document.getElementById('pl-password').value;
+
+if (!phoneNumber || !password){
+showStatus(statusEl, 'Enter your phone number and password.', 'error');
+return;
+}
+btn.disabled = true;
+btn.innerHTML = '<span class="spinner"></span>Logging in…';
+
+const result = await window.YellowRide.loginPassenger({ phoneNumber, password });
+
+btn.disabled = false;
+btn.textContent = 'Log in';
+
+if (!result.success){
+showStatus(statusEl, result.error || 'Login failed, please try again.', 'error');
+return;
+}
+showStatus(statusEl, 'Logged in!', 'success');
+setTimeout(() => redirectToRoleDashboard(result.profile?.role), 600);
+});
+
+// ---------- Passenger Signup ----------
+document.getElementById('passenger-signup-btn').addEventListener('click', async () => {
+const btn = document.getElementById('passenger-signup-btn');
+const statusEl = document.getElementById('passenger-signup-status');
+const fullName = document.getElementById('ps-name').value.trim();
+const phoneNumber = document.getElementById('ps-phone').value.trim();
+const email = document.getElementById('ps-email').value.trim();
+const password = document.getElementById('ps-password').value;
+
+if (!fullName || !phoneNumber || !password){
+showStatus(statusEl, 'Please fill in every field.', 'error');
+return;
+}
+if (password.length < 8){
+showStatus(statusEl, 'Password must be at least 8 characters.', 'error');
+return;
+}
+btn.disabled = true;
+btn.innerHTML = '<span class="spinner"></span>Creating account…';
+
+const result = await window.YellowRide.signUpPassenger({ fullName, phoneNumber, email, password });
+
+btn.disabled = false;
+btn.textContent = 'Create account';
+
+if (!result.success){
+showStatus(statusEl, result.error || 'Something went wrong while creating your account. Please try again later.', 'error');
+return;
+}
+
+showStatus(statusEl, 'Account created! Logging you in…', 'success');
+const loginResult = await window.YellowRide.loginPassenger({ phoneNumber, password });
+if (loginResult.success){
+setTimeout(() => redirectToRoleDashboard(loginResult.profile?.role), 600);
+} else {
+setTimeout(() => activateTab('login'), 1200);
+}
+});
+
+// ---------- Driver Login ----------
+document.getElementById('driver-login-btn').addEventListener('click', async () => {
+const btn = document.getElementById('driver-login-btn');
+const statusEl = document.getElementById('driver-login-status');
+const email = document.getElementById('dl-email').value.trim();
+const password = document.getElementById('dl-password').value;
+
+if (!email || !password){
+showStatus(statusEl, 'Enter your email and password.', 'error');
+return;
+}
+btn.disabled = true;
+btn.innerHTML = '<span class="spinner"></span>Logging in…';
+
+const result = await window.YellowRide.loginDriver({ email, password });
+
+btn.disabled = false;
+btn.textContent = 'Log in';
+
+if (!result.success){
+showStatus(statusEl, result.error || 'Login failed, Please try again.', 'error');
+return;
+}
+showStatus(statusEl, 'Logging in!', 'success');
+setTimeout(() => redirectToRoleDashboard(result.profile?.role), 600);
+});
+
+// ---------- Driver Signup ----------
+document.getElementById('driver-signup-btn').addEventListener('click', async () => {
+const btn = document.getElementById('driver-signup-btn');
+const statusEl = document.getElementById('driver-signup-status');
+const fullName = document.getElementById('ds-name').value.trim();
+const email = document.getElementById('ds-email').value.trim();
+const phoneNumber = document.getElementById('ds-phone').value.trim();
+const vehiclePlateNumber = document.getElementById('ds-vehicle').value.trim();
+const password = document.getElementById('ds-password').value;
+
+if (!fullName || !email || !phoneNumber || !vehiclePlateNumber || !password){
+showStatus(statusEl, 'Please fill in every field.', 'error');
+return;
+}
+if (password.length < 8){
+showStatus(statusEl, 'Password must be at least 8 characters.', 'error');
+return;
+}
+btn.disabled = true;
+btn.innerHTML = '<span class="spinner"></span>Creating account…';
+
+const result = await window.YellowRide.signUpDriver({ fullName, email, phoneNumber, password, vehiclePlateNumber });
+
+btn.disabled = false;
+btn.textContent = 'Create account';
+
+if (!result.success){
+showStatus(statusEl, result.error || 'Something went wrong while creating your account. Please try again later.', 'error');
+return;
+}
+
+showStatus(statusEl, 'Account created! Logging in…', 'success');
+const loginResult = await window.YellowRide.loginDriver({ email, password });
+if (loginResult.success){
+setTimeout(() => redirectToRoleDashboard(loginResult.profile?.role), 600);
+} else {
+setTimeout(() => activateTab('login'), 1200);
+}
+});
+
+// ---------- Embedded Terms sheets (slide up from bottom, in-page, no navigation) ----------
+function openTermsSheet(which){
+document.getElementById(which + '-terms-backdrop').classList.add('open');
+document.body.style.overflow = 'hidden'; // lock background scroll while sheet is open
+}
+function closeTermsSheet(which){
+document.getElementById(which + '-terms-backdrop').classList.remove('open');
+document.body.style.overflow = '';
+}
+
+document.getElementById('passenger-terms-link').addEventListener('click', (e) => {
+e.preventDefault();
+openTermsSheet('passenger');
+});
+document.getElementById('driver-terms-link').addEventListener('click', (e) => {
+e.preventDefault();
+openTermsSheet('driver');
+});
+
+document.querySelectorAll('[data-close-terms]').forEach(btn => {
+btn.addEventListener('click', () => closeTermsSheet(btn.dataset.closeTerms));
+});
+
+// Tapping the dimmed backdrop area (outside the sheet) also closes it
+document.getElementById('passenger-terms-backdrop').addEventListener('click', (e) => {
+if (e.target.id === 'passenger-terms-backdrop') closeTermsSheet('passenger');
+});
+document.getElementById('driver-terms-backdrop').addEventListener('click', (e) => {
+if (e.target.id === 'driver-terms-backdrop') closeTermsSheet('driver');
+});
+</script>
+</body>
+</html>
