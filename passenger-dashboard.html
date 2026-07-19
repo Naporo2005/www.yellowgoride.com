@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
+  <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo Ride — Passenger Dashboard</title>
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="icon" href="icon-32.png" type="image/png" sizes="32x32">
 <link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <title>YellowGo Ride — Passenger Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
@@ -15,821 +15,1277 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-  :root{
-    --charcoal:#161512; --white:#FFFCF5; --yellow:#FFC93C; --green:#0B6E4F;
-    --rust:#C4432B; --line:#E8E1CF; --muted:#8a8577; --text:#161512;
-  }
-  *{box-sizing:border-box; margin:0; padding:0;}
-  body{ font-family:'Inter',sans-serif; background:var(--white); color:var(--text); min-height:100vh; }
-  @media (prefers-reduced-motion: reduce){*{animation-duration:0.01ms !important; transition-duration:0.01ms !important;}}
+:root{
+--charcoal: #161512;
+--white: #FFFCF5;
+--yellow: #FFC93C;
+--green: #0B6E4F;
+--rust: #C4432B;
+--line: #E8E1CF;
+--muted: #8a8577;
+--text: #161512;
+}
+*{box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{ font-family: 'Inter',sans-serif;
+background: var(--white);
+color: var(--text);
+min-height: 100vh;
+}
+@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
+transition-duration: 0.01ms !important;
+}}
 
-  .topnav{ display:flex; align-items:center; justify-content:space-between; padding:14px 28px; background:var(--charcoal); color:var(--white); }
-  .brand{display:flex; align-items:center; gap:9px; font-family:'Sora',sans-serif; font-weight:800; font-size:19px;}
-  .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--yellow);}
-  .nav-actions{display:flex; align-items:center; gap:18px;}
-  .icon-btn{background:none; border:none; color:var(--white); font-size:17px; cursor:pointer; position:relative; padding:6px;}
-  .icon-btn .badge{
-    position:absolute; top:-2px; right:-4px; min-width:16px; height:16px; padding:0 4px;
-    background:var(--rust); border-radius:999px; border:2px solid var(--charcoal);
-    font-size:9.5px; font-weight:700; color:var(--white); line-height:1;
-    display:flex; align-items:center; justify-content:center; font-family:'JetBrains Mono',monospace;
-  }
-  .avatar-btn{ width:34px; height:34px; border-radius:50%; background:var(--yellow); color:var(--charcoal); display:flex; align-items:center; justify-content:center; font-family:'Sora',sans-serif; font-weight:700; font-size:13px; border:none; cursor:pointer; }
+.topnav{ display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 14px 28px;
+background: var(--charcoal);
+color: var(--white);
+}
+.brand{display: flex;
+align-items: center;
+gap: 9px;
+font-family: 'Sora',sans-serif;
+font-weight: 800;
+font-size: 19px;
+}
+.brand .dot{width: 9px;
+height: 9px;
+border-radius: 50%;
+background: var(--yellow);
+}
+.nav-actions{display: flex;
+align-items: center;
+gap: 18px;
+}
+.icon-btn{background: none;
+border: none;
+color: var(--white);
+font-size: 17px;
+cursor: pointer;
+position: relative;
+padding: 6px;
+}
+.icon-btn .badge{
+position: absolute;
+top: -2px;
+right: -4px;
+min-width: 16px;
+height: 16px;
+padding: 0 4px;
+background: var(--rust);
+border-radius: 999px;
+border: 2px solid var(--charcoal);
+font-size: 9.5px;
+font-weight: 700;
+color: var(--white);
+line-height: 1;
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: 'JetBrains Mono',monospace;
+}
+.avatar-btn{ width: 34px;
+height: 34px;
+border-radius: 50%;
+background: var(--yellow);
+color: var(--charcoal);
+display: flex;
+align-items: center;
+justify-content: center;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 13px;
+border: none;
+cursor: pointer;
+}
 
-  .layout{display:grid; grid-template-columns:400px 1fr; height:calc(100vh - 62px);}
-  @media (max-width: 900px){ .layout{grid-template-columns:1fr; height:auto;} .map-area{height:280px; order:-1;} }
+.layout{display: grid;
+grid-template-columns: 400px 1fr;
+height: calc(100vh - 62px);
+}
+@media (max-width: 900px){ .layout{grid-template-columns: 1fr;
+height: auto;
+} .map-area{height: 280px;
+order: -1;
+} }
 
-  .side-panel{padding:24px; overflow-y:auto; border-right:1px solid var(--line);}
-  .tabs-row{display:flex; gap:6px; margin-bottom:20px; background:#F1EDE0; border-radius:999px; padding:4px;}
-  .tabs-row button{ flex:1; border:none; background:none; padding:9px 0; font-family:'Sora',sans-serif; font-weight:600; font-size:13px; border-radius:999px; cursor:pointer; color:var(--muted); transition:background .2s, color .2s; }
-  .tabs-row button.active{background:var(--charcoal); color:var(--white);}
+.side-panel{padding: 24px;
+overflow-y: auto;
+border-right: 1px solid var(--line);
+}
+.tabs-row{display: flex;
+gap: 6px;
+margin-bottom: 20px;
+background: #F1EDE0;
+border-radius: 999px;
+padding: 4px;
+}
+.tabs-row button{ flex: 1;
+border: none;
+background: none;
+padding: 9px 0;
+font-family: 'Sora',sans-serif;
+font-weight: 600;
+font-size: 13px;
+border-radius: 999px;
+cursor: pointer;
+color: var(--muted);
+transition: background .2s, color .2s;
+}
+.tabs-row button.active{background: var(--charcoal);
+color: var(--white);
+}
 
-  .panel-section{display:none;}
-  .panel-section.active{display:block;}
+.panel-section{display: none;
+}
+.panel-section.active{display: block;
+}
 
-  h2.section-title{font-family:'Sora',sans-serif; font-size:19px; font-weight:700; margin-bottom:4px; color:var(--text);}
-  .section-sub{font-size:13px; color:var(--muted); margin-bottom:18px;}
+h2.section-title{font-family: 'Sora',sans-serif;
+font-size: 19px;
+font-weight: 700;
+margin-bottom: 4px;
+color: var(--text);
+}
+.section-sub{font-size: 13px;
+color: var(--muted);
+margin-bottom: 18px;
+}
 
-  .field{margin-bottom:14px;}
-  .field label{display:block; font-size:12px; font-weight:600; margin-bottom:6px; color:var(--text);}
-  .input-with-icon{position:relative;}
-  .input-with-icon i{position:absolute; left:13px; top:50%; transform:translateY(-50%); color:var(--muted); font-size:13px;}
-  .input-with-icon input{width:100%; padding:11px 14px 11px 34px; border:1.5px solid var(--line); border-radius:10px; font-size:14px; background:var(--white); color:var(--text);}
-  .input-with-icon input:focus{outline:none; border-color:var(--green); box-shadow:0 0 0 3px rgba(11,110,79,0.12);}
+.field{margin-bottom: 14px;
+}
+.field label{display: block;
+font-size: 12px;
+font-weight: 600;
+margin-bottom: 6px;
+color: var(--text);
+}
+.input-with-icon{position: relative;
+}
+.input-with-icon i{position: absolute;
+left: 13px;
+top: 50%;
+transform: translateY(-50%);
+color: var(--muted);
+font-size: 13px;
+}
+.input-with-icon input{width: 100%;
+padding: 11px 14px 11px 34px;
+border: 1.5px solid var(--line);
+border-radius: 10px;
+font-size: 14px;
+background: var(--white);
+color: var(--text);
+}
+.input-with-icon input:focus{outline: none;
+border-color: var(--green);
+box-shadow: 0 0 0 3px rgba(11,110,79,0.12);
+}
 
-  /* Pickup: read-only auto-detected location display, not an editable input */
-  .pickup-display{
-    display:flex; align-items:center; gap:10px; border:1.5px solid var(--line); border-radius:10px;
-    padding:11px 14px; background:#F8F6EE; font-size:13.5px;
-  }
-  .pickup-display i.dot{color:var(--yellow); flex-shrink:0;}
-  .pickup-display .pickup-text{flex:1; color:var(--text);}
-  .pickup-display .pickup-text.placeholder{color:var(--muted);}
-  .pickup-refresh-btn{ background:none; border:none; color:var(--green); font-size:14px; cursor:pointer; padding:4px; flex-shrink:0; }
-  .pickup-refresh-btn:hover{opacity:0.7;}
-  .pickup-refresh-btn.spinning i{animation:spin 1s linear infinite;}
-  @keyframes spin{ to{ transform:rotate(360deg); } }
-  .pickup-hint{font-size:11.5px; color:var(--muted); margin-top:6px;}
+/* Pickup: read-only auto-detected location display, not an editable input */
+.pickup-display{
+display: flex;
+align-items: center;
+gap: 10px;
+border: 1.5px solid var(--line);
+border-radius: 10px;
+padding: 11px 14px;
+background: #F8F6EE;
+font-size: 13.5px;
+}
+.pickup-display i.dot{color: var(--yellow);
+flex-shrink: 0;
+}
+.pickup-display .pickup-text{flex: 1;
+color: var(--text);
+}
+.pickup-display .pickup-text.placeholder{color: var(--muted);
+}
+.pickup-refresh-btn{ background: none;
+border: none;
+color: var(--green);
+font-size: 14px;
+cursor: pointer;
+padding: 4px;
+flex-shrink: 0;
+}
+.pickup-refresh-btn:hover{opacity: 0.7;
+}
+.pickup-refresh-btn.spinning i{animation: spin 1s linear infinite;
+}
+@keyframes spin{ to{ transform: rotate(360deg);
+} }
+.pickup-hint{font-size: 11.5px;
+color: var(--muted);
+margin-top: 6px;
+}
 
-  .fav-chips{display:flex; gap:6px; flex-wrap:wrap; margin-top:8px;}
-  .fav-chip{font-size:12px; padding:5px 10px; border-radius:999px; background:#F1EDE0; color:var(--text); cursor:pointer; border:none;}
-  .fav-chip:hover{background:var(--line);}
+.fav-chips{display: flex;
+gap: 6px;
+flex-wrap: wrap;
+margin-top: 8px;
+}
+.fav-chip{
+font-size: 12px;
+padding: 5px 10px;
+border-radius: 999px;
+background: #F1EDE0;
+color: var(--charcoal);
+cursor: pointer;
+border: none;
+}
+.fav-chip:hover{background: var(--line);
+}
+.fav-chip .chip-dist{ color: var(--muted);
+font-family: 'JetBrains Mono',monospace;
+font-size: 10.5px;
+margin-left: 4px;
+}
 
-  .distance-note{ background:#F8F6EE; border:1px dashed var(--line); border-radius:10px; padding:12px 14px; font-size:13px; color:var(--muted); margin-bottom:16px; }
-  .distance-note strong{color:var(--text); font-family:'JetBrains Mono',monospace;}
+.distance-note{ background: #F8F6EE;
+border: 1px dashed var(--line);
+border-radius: 10px;
+padding: 12px 14px;
+font-size: 13px;
+color: var(--muted);
+margin-bottom: 16px;
+}
+.distance-note strong{color: var(--text);
+font-family: 'JetBrains Mono',monospace;
+}
 
-  .btn-primary{ width:100%; padding:13px 0; background:var(--yellow); color:var(--charcoal); border:none; border-radius:10px; font-family:'Sora',sans-serif; font-weight:700; font-size:15px; cursor:pointer; transition:box-shadow .12s, transform .12s; }
-  .btn-primary:hover{box-shadow:0 6px 16px rgba(255,201,60,0.35);}
-  .btn-primary:active{transform:scale(0.98);}
-  .btn-primary:disabled{opacity:0.55; cursor:not-allowed;}
+.btn-primary{ width: 100%;
+padding: 13px 0;
+background: var(--yellow);
+color: var(--charcoal);
+border: none;
+border-radius: 10px;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 15px;
+cursor: pointer;
+transition: box-shadow .12s, transform .12s;
+}
+.btn-primary:hover{box-shadow: 0 6px 16px rgba(255,201,60,0.35);
+}
+.btn-primary:active{transform: scale(0.98);
+}
+.btn-primary:disabled{opacity: 0.55;
+cursor: not-allowed;
+}
 
-  .btn-secondary{ width:100%; padding:11px 0; background:none; color:var(--rust); border:1.5px solid rgba(196,67,43,0.3); border-radius:10px; font-family:'Sora',sans-serif; font-weight:600; font-size:14px; cursor:pointer; margin-top:10px; }
-  .btn-secondary:hover{background:rgba(196,67,43,0.06);}
+.btn-secondary{ width: 100%;
+padding: 11px 0;
+background: none;
+color: var(--rust);
+border: 1.5px solid rgba(196,67,43,0.3);
+border-radius: 10px;
+font-family: 'Sora',sans-serif;
+font-weight: 600;
+font-size: 14px;
+cursor: pointer;
+margin-top: 10px;
+}
+.btn-secondary:hover{background: rgba(196,67,43,0.06);
+}
 
-  .ride-status-card{border:1.5px solid var(--line); border-radius:14px; padding:18px; margin-bottom:16px;}
-  .status-badge{ display:inline-flex; align-items:center; gap:6px; font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:500; padding:4px 10px; border-radius:999px; background:rgba(11,110,79,0.1); color:var(--green); text-transform:uppercase; letter-spacing:0.03em; }
-  .status-badge.pulsing::before{content:''; width:6px; height:6px; border-radius:50%; background:var(--green); animation:pulse 1.4s ease-in-out infinite; display:inline-block;}
-  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.ride-status-card{border: 1.5px solid var(--line);
+border-radius: 14px;
+padding: 18px;
+margin-bottom: 16px;
+}
+.status-badge{ display: inline-flex;
+align-items: center;
+gap: 6px;
+font-family: 'JetBrains Mono',monospace;
+font-size: 11px;
+font-weight: 500;
+padding: 4px 10px;
+border-radius: 999px;
+background: rgba(11,110,79,0.1);
+color: var(--green);
+text-transform: uppercase;
+letter-spacing: 0.03em;
+}
+.status-badge.pulsing::before{content: '';
+width: 6px;
+height: 6px;
+border-radius: 50%;
+background: var(--green);
+animation: pulse 1.4s ease-in-out infinite;
+display: inline-block;
+}
+@keyframes pulse{0%,100%{opacity: 1;
+}50%{opacity: 0.3;
+}}
 
-  .driver-code-display{ text-align:center; padding:16px; margin-top:14px; background:rgba(255,201,60,0.08); border-radius:12px; }
-  .driver-code-display .label{font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:4px;}
-  .driver-code-display .code{font-family:'JetBrains Mono',monospace; font-size:22px; font-weight:700; color:var(--text);}
-  .driver-code-display .name{font-size:13.5px; color:var(--text); margin-top:4px;}
+.driver-code-display{ text-align: center;
+padding: 16px;
+margin-top: 14px;
+background: rgba(255,201,60,0.08);
+border-radius: 12px;
+}
+.driver-code-display .label{font-size: 11px;
+color: var(--muted);
+text-transform: uppercase;
+letter-spacing: 0.04em;
+margin-bottom: 4px;
+}
+.driver-code-display .code{font-family: 'JetBrains Mono',monospace;
+font-size: 22px;
+font-weight: 700;
+color: var(--text);
+}
+.driver-code-display .name{font-size: 13.5px;
+color: var(--text);
+margin-top: 4px;
+}
 
-  .driver-actions{display:flex; gap:8px; margin-top:14px;}
-  .driver-actions button{flex:1; padding:9px 0; border-radius:8px; border:1.5px solid var(--line); background:none; font-size:13px; font-weight:600; cursor:pointer; color:var(--text);}
-  .driver-actions button:hover{background:#F8F6EE;}
+.driver-actions{display: flex;
+gap: 8px;
+margin-top: 14px;
+}
+.driver-actions button{flex: 1;
+padding: 9px 0;
+border-radius: 8px;
+border: 1.5px solid var(--line);
+background: none;
+font-size: 13px;
+font-weight: 600;
+cursor: pointer;
+color: var(--text);
+}
+.driver-actions button:hover{background: #F8F6EE;
+}
 
-  .history-item{border-bottom:1px solid var(--line); padding:14px 0;}
-  .history-top{display:flex; justify-content:space-between; align-items:baseline;}
-  .history-route{font-size:13.5px; font-weight:600; color:var(--text);}
-  .history-meta{font-size:12px; color:var(--muted); margin-top:3px;}
-  .empty-state{text-align:center; padding:40px 10px; color:var(--muted); font-size:13.5px;}
-  .empty-state i{font-size:26px; display:block; margin-bottom:10px; opacity:0.4;}
+.history-item{border-bottom: 1px solid var(--line);
+padding: 14px 0;
+}
+.history-top{display: flex;
+justify-content: space-between;
+align-items: baseline;
+}
+.history-route{font-size: 13.5px;
+font-weight: 600;
+color: var(--text);
+}
+.history-meta{font-size: 12px;
+color: var(--muted);
+margin-top: 3px;
+}
+.empty-state{text-align: center;
+padding: 40px 10px;
+color: var(--muted);
+font-size: 13.5px;
+}
+.empty-state i{font-size: 26px;
+display: block;
+margin-bottom: 10px;
+opacity: 0.4;
+}
 
-  .map-area{ position:relative; background: linear-gradient(#F1EDE0 1px, transparent 1px) 0 0/28px 28px, linear-gradient(90deg, #F1EDE0 1px, transparent 1px) 0 0/28px 28px, var(--white); }
-  #map-canvas{width:100%; height:100%;}
+.map-area{ position: relative;
+background: linear-gradient(#F1EDE0 1px, transparent 1px) 0 0/28px 28px, linear-gradient(90deg, #F1EDE0 1px, transparent 1px) 0 0/28px 28px, var(--white);
+}
+#map-canvas{width: 100%;
+height: 100%;
+}
 
-  /* Notification dropdown */
-  .notif-dropdown{
-    display:none; position:absolute; top:56px; right:16px; width:320px; max-width:calc(100vw - 32px);
-    background:var(--white); border-radius:14px; box-shadow:0 12px 32px rgba(0,0,0,0.18);
-    max-height:400px; overflow-y:auto; z-index:5000; border:1px solid var(--line);
-  }
-  .notif-dropdown.show{display:block;}
-  .notif-header{padding:14px 16px; font-family:'Sora',sans-serif; font-weight:700; font-size:14px; border-bottom:1px solid var(--line); color:var(--text);}
-  .notif-item{padding:12px 16px; border-bottom:1px solid var(--line); font-size:13px; cursor:default;}
-  .notif-item:last-child{border-bottom:none;}
-  .notif-item.unread{background:rgba(255,201,60,0.06);}
-  .notif-item .notif-title{font-weight:600; color:var(--text); margin-bottom:2px;}
-  .notif-item .notif-body{color:var(--muted); font-size:12px;}
-  .notif-item .notif-time{color:var(--muted); font-size:10.5px; margin-top:4px; font-family:'JetBrains Mono',monospace;}
+/* Notification dropdown */
+.notif-dropdown{
+display: none;
+position: absolute;
+top: 56px;
+right: 16px;
+width: 320px;
+max-width: calc(100vw - 32px);
+background: var(--white);
+border-radius: 14px;
+box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+max-height: 400px;
+overflow-y: auto;
+z-index: 5000;
+border: 1px solid var(--line);
+}
+.notif-dropdown.show{display: block;
+}
+.notif-header{padding: 14px 16px;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 14px;
+border-bottom: 1px solid var(--line);
+color: var(--text);
+}
+.notif-item{padding: 12px 16px;
+border-bottom: 1px solid var(--line);
+font-size: 13px;
+cursor: default;
+}
+.notif-item:last-child{border-bottom: none;
+}
+.notif-item.unread{background: rgba(255,201,60,0.06);
+}
+.notif-item .notif-title{font-weight: 600;
+color: var(--text);
+margin-bottom: 2px;
+}
+.notif-item .notif-body{color: var(--muted);
+font-size: 12px;
+}
+.notif-item .notif-time{color: var(--muted);
+font-size: 10.5px;
+margin-top: 4px;
+font-family: 'JetBrains Mono',monospace;
+}
 
-  /* Cancel modal */
-  .modal-backdrop{ display:none; position:fixed; inset:0; background:rgba(22,21,18,0.5); z-index:100; align-items:center; justify-content:center; padding:20px; }
-  .modal-backdrop.show{display:flex;}
-  .modal-card{background:var(--white); border-radius:16px; padding:24px; max-width:380px; width:100%;}
-  .modal-card h3{font-family:'Sora',sans-serif; font-size:17px; margin-bottom:14px; color:var(--text);}
-  .reason-option{border:1.5px solid var(--line); border-radius:10px; padding:11px 14px; font-size:13.5px; cursor:pointer; display:flex; align-items:center; gap:9px; margin-bottom:8px; color:var(--text);}
-  .reason-option.selected{border-color:var(--rust); background:rgba(196,67,43,0.05);}
-  .modal-actions{display:flex; gap:10px; margin-top:16px;}
-  .modal-actions button{flex:1; padding:11px 0; border-radius:9px; font-weight:600; font-size:13.5px; cursor:pointer;}
-  .modal-cancel-confirm{background:var(--rust); color:var(--white); border:none;}
-  .modal-cancel-dismiss{background:none; border:1.5px solid var(--line); color:var(--text);}
+/* Cancel modal */
+.modal-backdrop{ display: none;
+position: fixed;
+inset: 0;
+background: rgba(22,21,18,0.5);
+z-index: 100;
+align-items: center;
+justify-content: center;
+padding: 20px;
+}
+.modal-backdrop.show{display: flex;
+}
+.modal-card{background: var(--white);
+border-radius: 16px;
+padding: 24px;
+max-width: 380px;
+width: 100%;
+}
+.modal-card h3{font-family: 'Sora',sans-serif;
+font-size: 17px;
+margin-bottom: 14px;
+color: var(--text);
+}
+.reason-option{border: 1.5px solid var(--line);
+border-radius: 10px;
+padding: 11px 14px;
+font-size: 13.5px;
+cursor: pointer;
+display: flex;
+align-items: center;
+gap: 9px;
+margin-bottom: 8px;
+color: var(--text);
+}
+.reason-option.selected{border-color: var(--rust);
+background: rgba(196,67,43,0.05);
+}
+.modal-actions{display: flex;
+gap: 10px;
+margin-top: 16px;
+}
+.modal-actions button{flex: 1;
+padding: 11px 0;
+border-radius: 9px;
+font-weight: 600;
+font-size: 13.5px;
+cursor: pointer;
+}
+.modal-cancel-confirm{background: var(--rust);
+color: var(--white);
+border: none;
+}
+.modal-cancel-dismiss{background: none;
+border: 1.5px solid var(--line);
+color: var(--text);
+}
 
-  @media (prefers-color-scheme: dark){
-    :root{ --text:#F1EDE0; }
-    body{background:#0F0E0C;}
-    .side-panel{border-color:#2A2820;}
-    .tabs-row{background:#211F1A;}
-    .input-with-icon input{background:#1B1A16; border-color:#2A2820;}
-    .pickup-display{background:#1B1A16; border-color:#2A2820;}
-    .distance-note{background:#1B1A16; border-color:#2A2820;}
-    .ride-status-card, .history-item{border-color:#2A2820;}
-    .driver-actions button{border-color:#2A2820;}
-    .modal-card{background:#161512;}
-    .reason-option{border-color:#2A2820;}
-    .modal-cancel-dismiss{border-color:#2A2820;}
-    .driver-code-display{background:rgba(255,201,60,0.06);}
-    .map-area{background: linear-gradient(#211F1A 1px, transparent 1px) 0 0/28px 28px, linear-gradient(90deg,#211F1A 1px, transparent 1px) 0 0/28px 28px, #16150F;}
-    .notif-dropdown{background:#161512; border-color:#2A2820;}
-    .notif-header{border-color:#2A2820;}
-    .notif-item{border-color:#2A2820;}
-  }
+@media (prefers-color-scheme: dark){
+:root{ --text: #F1EDE0;
+}
+body{background: #0F0E0C;
+}
+.side-panel{border-color: #2A2820;
+}
+.tabs-row{background: #211F1A;
+}
+.input-with-icon input{background: #1B1A16;
+border-color: #2A2820;
+}
+.pickup-display{background: #1B1A16;
+border-color: #2A2820;
+}
+/* FIX: .fav-chip previously had no dark-mode override — its background
+       stayed the light #F1EDE0 while its text (var(--text)) turned light too,
+       making the chip text invisible (light text on light background). */
+.fav-chip{background: #211F1A;
+color: var(--text);
+}
+.fav-chip:hover{background: #2A2820;
+}
+.distance-note{background: #1B1A16;
+border-color: #2A2820;
+}
+.ride-status-card, .history-item{border-color: #2A2820;
+}
+.driver-actions button{border-color: #2A2820;
+}
+.modal-card{background: #161512;
+}
+.reason-option{border-color: #2A2820;
+}
+.modal-cancel-dismiss{border-color: #2A2820;
+}
+.driver-code-display{background: rgba(255,201,60,0.06);
+}
+.map-area{background: linear-gradient(#211F1A 1px, transparent 1px) 0 0/28px 28px, linear-gradient(90deg,#211F1A 1px, transparent 1px) 0 0/28px 28px, #16150F;
+}
+.notif-dropdown{background: #161512;
+border-color: #2A2820;
+}
+.notif-header{border-color: #2A2820;
+}
+.notif-item{border-color: #2A2820;
+}
+}
 </style>
 </head>
 <body>
 
-  <div class="topnav">
-    <div class="brand"><span class="dot"></span>YellowGo Ride</div>
-    <div class="nav-actions">
-      <button class="icon-btn" id="notif-btn"><i class="fa-solid fa-bell"></i><span class="badge" id="notif-badge" style="display:none;"></span></button>
-      <button class="avatar-btn" id="avatar-btn">--</button>
-    </div>
-  </div>
-
-  <div class="notif-dropdown" id="notif-dropdown">
-    <div class="notif-header">Notifications</div>
-    <div id="notif-list"><div class="empty-state" style="padding:24px 10px;"><i class="fa-solid fa-bell-slash"></i>No notifications yet.</div></div>
-  </div>
-
-  <div class="layout">
-    <div class="side-panel">
-      <div class="tabs-row">
-        <button class="active" data-panel="request">Request</button>
-        <button data-panel="history">History</button>
-        <button data-panel="favorites">Favorites</button>
-      </div>
-
-      <!-- REQUEST TAB -->
-      <div class="panel-section active" id="panel-request">
-        <div id="request-form-block">
-          <h2 class="section-title">Where to?</h2>
-          <p class="section-sub">We'll find the nearest available driver. Fares are agreed directly with your driver.</p>
-
-          <div class="field">
-            <label>Pickup location</label>
-            <div class="pickup-display">
-              <i class="fa-solid fa-circle-dot dot"></i>
-              <span class="pickup-text placeholder" id="pickup-text">Detecting your location…</span>
-              <button class="pickup-refresh-btn" id="pickup-refresh-btn" title="Refresh location"><i class="fa-solid fa-rotate"></i></button>
-            </div>
-            <div class="pickup-hint" id="pickup-hint">We use your current location so your driver knows exactly where to meet you.</div>
-          </div>
-
-          <div class="field" style="position:relative;">
-            <label for="dropoff-input">Drop-off location</label>
-            <div class="input-with-icon">
-              <i class="fa-solid fa-location-dot" style="color:var(--green);"></i>
-              <input type="text" id="dropoff-input" placeholder="Type any destination — e.g. Tamale Teaching Hospital" autocomplete="off" />
-            </div>
-            <div class="yr-autocomplete-dropdown" id="dropoff-dropdown"></div>
-            <div class="fav-chips" id="popular-chips-dropoff"></div>
-            <div class="fav-chips" id="fav-chips"></div>
-          </div>
-
-          <div class="field-hint" style="font-size:11.5px; color:var(--muted); margin-top:-8px; margin-bottom:14px;">
-            Not listed? Just type it and tap Request Ride — we'll pass your typed address straight to the driver even without an exact map match.
-          </div>
-
-          <div class="distance-note">
-            <span>Estimated distance</span>
-            <strong id="distance-value">—</strong>
-          </div>
-
-          <div class="status-msg" id="request-status" style="margin-top:10px; font-size:13px;"></div>
-          <button class="btn-primary" id="request-ride-btn">Request Ride</button>
-        </div>
-
-        <div id="active-ride-block" style="display:none;">
-          <div class="ride-status-card">
-            <span class="status-badge pulsing" id="ride-status-badge">Requested</span>
-            <p style="font-size:13.5px; margin-top:12px; color:var(--muted);" id="ride-status-text">Looking for a nearby driver…</p>
-
-            <div class="driver-code-display" id="driver-code-block" style="display:none;">
-              <div class="label">Your Driver</div>
-              <div class="code" id="driver-code-value">—</div>
-              <div class="name" id="driver-name-value">—</div>
-            </div>
-
-            <div class="driver-actions" id="driver-actions-block" style="display:none;">
-              <button id="call-driver-btn"><i class="fa-solid fa-phone"></i> Call</button>
-              <button id="message-driver-btn"><i class="fa-solid fa-comment"></i> Message</button>
-            </div>
-          </div>
-          <button class="btn-secondary" id="cancel-ride-btn">Cancel Request</button>
-        </div>
-      </div>
-
-      <!-- HISTORY TAB -->
-      <div class="panel-section" id="panel-history">
-        <h2 class="section-title">Ride History</h2>
-        <p class="section-sub">Your past trips.</p>
-        <div id="history-list"><div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i>Loading your rides…</div></div>
-      </div>
-
-      <!-- FAVORITES TAB -->
-      <div class="panel-section" id="panel-favorites">
-        <h2 class="section-title">Favorite Locations</h2>
-        <p class="section-sub">Save places you go often for faster booking.</p>
-        <div class="field">
-          <label for="fav-label">Label</label>
-          <div class="input-with-icon"><i class="fa-solid fa-tag"></i><input type="text" id="fav-label" placeholder="e.g. Home, Work" /></div>
-        </div>
-        <div class="field">
-          <label for="fav-address">Address</label>
-          <div class="input-with-icon"><i class="fa-solid fa-map-pin"></i><input type="text" id="fav-address" placeholder="Street / landmark" /></div>
-        </div>
-        <button class="btn-primary" id="save-fav-btn">Save Location</button>
-        <div id="favorites-list" style="margin-top:20px;"></div>
-      </div>
-    </div>
-
-    <div class="map-area"><div id="map-canvas"></div></div>
-  </div>
-
-  <!-- ============ CANCEL MODAL ============ -->
-  <div class="modal-backdrop" id="cancel-modal">
-    <div class="modal-card">
-      <h3>Why are you cancelling?</h3>
-      <div id="cancel-reason-options">
-        <label class="reason-option"><input type="radio" name="cancel-reason" value="could_not_agree_price" style="display:none;" /> Couldn't agree on a price</label>
-        <label class="reason-option"><input type="radio" name="cancel-reason" value="driver_unavailable" style="display:none;" /> Driver not available</label>
-        <label class="reason-option"><input type="radio" name="cancel-reason" value="other" style="display:none;" /> Other</label>
-      </div>
-      <div class="modal-actions">
-        <button class="modal-cancel-dismiss" id="cancel-modal-dismiss">Never mind</button>
-        <button class="modal-cancel-confirm" id="cancel-modal-confirm" disabled>Cancel Ride</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="supabase-config.js"></script>
-  <script src="maps-utils.js"></script>
-  <script>
-    let currentProfile = null;
-    let activeRideId = null;
-    let rideUnsubscribe = null;
-    let rideStatusPollInterval = null;
-    let driverLocationUnsubscribe = null;
-    let notifChannel = null;
-
-    let map = null, pickupMarker = null, dropoffMarker = null, driverMarker = null, routeLine = null;
-    let pickupCoords = null, dropoffCoords = null, currentDistanceKm = null;
-    let pickupAddressText = null;
-
-    (async function init(){
-      currentProfile = await window.YellowRide.requireRole('passenger');
-      if(!currentProfile) return;
-
-      document.getElementById('avatar-btn').textContent = getInitials(currentProfile.full_name);
-      map = createMap('map-canvas');
-      setupAddressAutocomplete();
-      detectPickupLocation();
-      await loadFavorites();
-      await checkForActiveRide();
-      await loadRideHistory();
-      await loadNotifications();
-      subscribeToNotifications();
-    })();
-
-    function getInitials(name){ if(!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase(); }
-    function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
-
-    document.querySelectorAll('.tabs-row button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.tabs-row button').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('active'));
-        btn.classList.add('active');
-        document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
-      });
-    });
-
-    // ============ PICKUP: AUTO-DETECTED CURRENT LOCATION ============
-    async function reverseGeocode(lat, lng){
-      try{
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
-        const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-        if(!res.ok) return null;
-        const data = await res.json();
-        return data?.display_name || null;
-      } catch(err){
-        console.warn('Reverse geocode failed', err);
-        return null;
-      }
-    }
-
-    function detectPickupLocation(){
-      const textEl = document.getElementById('pickup-text');
-      const hintEl = document.getElementById('pickup-hint');
-      const refreshBtn = document.getElementById('pickup-refresh-btn');
-
-      if(!navigator.geolocation){
-        textEl.textContent = 'Location unavailable — enter pickup manually below.';
-        textEl.classList.remove('placeholder');
-        showManualPickupFallback();
-        return;
-      }
-
-      refreshBtn.classList.add('spinning');
-      textEl.textContent = 'Detecting your location…';
-      textEl.classList.add('placeholder');
-
-      navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        pickupCoords = { lat: latitude, lng: longitude };
-
-        if(pickupMarker) map.removeLayer(pickupMarker);
-        pickupMarker = L.marker([latitude, longitude], { icon: YR_ICONS.pickup }).addTo(map);
-        map.setView([latitude, longitude], 15);
-
-        const address = await reverseGeocode(latitude, longitude);
-        pickupAddressText = address || `Current location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
-
-        textEl.textContent = pickupAddressText;
-        textEl.classList.remove('placeholder');
-        hintEl.textContent = 'This is your current GPS location.';
-        refreshBtn.classList.remove('spinning');
-        recalcRoute();
-      }, (err) => {
-        console.warn('Geolocation error:', err.message);
-        refreshBtn.classList.remove('spinning');
-        textEl.textContent = "Couldn't detect your location — enter it manually below.";
-        textEl.classList.remove('placeholder');
-        showManualPickupFallback();
-      }, { enableHighAccuracy:true, timeout:10000, maximumAge:0 });
-    }
-
-    // Fallback: only shown if geolocation is denied/unavailable, so passengers
-    // aren't stuck unable to request a ride at all.
-    function showManualPickupFallback(){
-      const container = document.querySelector('#request-form-block .field:first-of-type');
-      if(document.getElementById('pickup-manual-input')) return; // already added
-      const manualField = document.createElement('div');
-      manualField.style.marginTop = '10px';
-      manualField.innerHTML = `
-        <div class="input-with-icon">
-          <i class="fa-solid fa-circle-dot" style="color:var(--yellow);"></i>
-          <input type="text" id="pickup-manual-input" placeholder="Type your pickup location" autocomplete="off" />
-        </div>
-        <div class="yr-autocomplete-dropdown" id="pickup-manual-dropdown"></div>`;
-      container.appendChild(manualField);
-
-      const manualInput = document.getElementById('pickup-manual-input');
-      const manualDropdown = document.getElementById('pickup-manual-dropdown');
-      attachAddressAutocomplete(manualInput, manualDropdown, (result) => {
-        pickupCoords = { lat: result.lat, lng: result.lng };
-        pickupAddressText = result.label;
-        document.getElementById('pickup-text').textContent = result.label;
-        document.getElementById('pickup-text').classList.remove('placeholder');
-        if(pickupMarker) map.removeLayer(pickupMarker);
-        pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], { icon: YR_ICONS.pickup }).addTo(map);
-        recalcRoute();
-      });
-    }
-
-    document.getElementById('pickup-refresh-btn').addEventListener('click', detectPickupLocation);
-
-    // ============ DROPOFF: FREEFORM, AUTOCOMPLETE OPTIONAL ============
-    const dropoffInput = document.getElementById('dropoff-input');
-
-    const POPULAR_PLACES = [
-       "Tamale Central Market", "Tamale Teaching Hospital",
-      "Kamina Barracks", "Education Ridge", "Lamashegu", "Sakasaka",
-      "Kalpohin", "Vittin", "Choggu", "WA Junction", "Gumbihini Roundabout"
-    ];
-
-    function renderPopularChips(){
-      const el = document.getElementById('popular-chips-dropoff');
-      el.innerHTML = '';
-      POPULAR_PLACES.forEach(place => {
-        const chip = document.createElement('button');
-        chip.className = 'fav-chip';
-        chip.textContent = place;
-        chip.addEventListener('click', () => searchAndSelectDropoff(place));
-        el.appendChild(chip);
-      });
-    }
-
-    async function searchAndSelectDropoff(placeName){
-      const dropdownEl = document.getElementById('dropoff-dropdown');
-      dropoffInput.value = placeName;
-      dropdownEl.innerHTML = `<div class="yr-autocomplete-item">Searching…</div>`;
-      dropdownEl.style.display = 'block';
-
-      const results = await geocodeAddress(`${placeName}, Tamale, Ghana`);
-      if(!results.length){
-        dropdownEl.style.display = 'none';
-        return; // typed text stays — freeform submit will still work
-      }
-      dropdownEl.innerHTML = results.map((r, i) => `<div class="yr-autocomplete-item" data-idx="${i}">${r.label}</div>`).join('');
-      dropdownEl.querySelectorAll('.yr-autocomplete-item[data-idx]').forEach((el, i) => {
-        el.addEventListener('click', () => {
-          dropoffInput.value = results[i].label;
-          dropdownEl.style.display = 'none';
-          selectDropoff(results[i]);
-        });
-      });
-    }
-
-    function selectDropoff(result){
-      dropoffCoords = { lat: result.lat, lng: result.lng };
-      if(dropoffMarker) map.removeLayer(dropoffMarker);
-      dropoffMarker = L.marker([dropoffCoords.lat, dropoffCoords.lng], { icon: YR_ICONS.dropoff }).addTo(map);
-      recalcRoute();
-    }
-
-    // If the passenger edits the dropoff text after selecting a match, the old
-    // coordinates no longer correspond to what's typed — clear them so submit
-    // falls back to a fresh geocode (or freeform) instead of using a stale pin.
-    dropoffInput.addEventListener('input', () => {
-      dropoffCoords = null;
-      currentDistanceKm = null;
-      document.getElementById('distance-value').textContent = '—';
-      if(dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
-    });
-
-    function setupAddressAutocomplete(){
-      attachAddressAutocomplete(dropoffInput, document.getElementById('dropoff-dropdown'), selectDropoff);
-      renderPopularChips();
-    }
-
-    function recalcRoute(){
-      if(pickupCoords && dropoffCoords){
-        routeLine = drawRouteLine(map, routeLine, [pickupCoords.lat, pickupCoords.lng], [dropoffCoords.lat, dropoffCoords.lng]);
-        currentDistanceKm = distanceKm(pickupCoords.lat, pickupCoords.lng, dropoffCoords.lat, dropoffCoords.lng);
-        document.getElementById('distance-value').textContent = `~${currentDistanceKm.toFixed(1)} km`;
-      } else {
-        document.getElementById('distance-value').textContent = '—';
-        currentDistanceKm = null;
-      }
-    }
-
-    async function loadFavorites(){
-      const { data } = await window.YellowRide.supabaseClient.from('favorite_locations').select('*').eq('passenger_id', currentProfile.id).order('created_at', { ascending: false });
-
-      const chipsEl = document.getElementById('fav-chips');
-      chipsEl.innerHTML = '';
-      (data || []).forEach(loc => {
-        const chip = document.createElement('button');
-        chip.className = 'fav-chip';
-        chip.textContent = loc.label;
-        chip.addEventListener('click', () => {
-          dropoffInput.value = loc.address;
-          if(loc.lat && loc.lng && (loc.lat !== 0 || loc.lng !== 0)){
-            selectDropoff({ lat: loc.lat, lng: loc.lng, label: loc.address });
-          }
-        });
-        chipsEl.appendChild(chip);
-      });
-
-      const listEl = document.getElementById('favorites-list');
-      if(!data || data.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-map-pin"></i>No saved locations yet.</div>`; return; }
-      listEl.innerHTML = data.map(loc => `
-        <div class="history-item">
-          <div class="history-top"><span class="history-route">${escapeHtml(loc.label)}</span></div>
-          <div class="history-meta">${escapeHtml(loc.address)}</div>
-        </div>`).join('');
-    }
-
-    document.getElementById('save-fav-btn').addEventListener('click', async () => {
-      const label = document.getElementById('fav-label').value.trim();
-      const address = document.getElementById('fav-address').value.trim();
-      if(!label || !address) return;
-      const btn = document.getElementById('save-fav-btn');
-      btn.disabled = true; btn.textContent = 'Saving…';
-      const matches = await geocodeAddress(address);
-      const coords = matches[0] || { lat: 0, lng: 0 };
-      const { error } = await window.YellowRide.supabaseClient.from('favorite_locations').insert({
-        passenger_id: currentProfile.id, label, address, lat: coords.lat, lng: coords.lng
-      });
-      btn.disabled = false; btn.textContent = 'Save Location';
-      if(!error){ document.getElementById('fav-label').value = ''; document.getElementById('fav-address').value = ''; await loadFavorites(); }
-    });
-
-    document.getElementById('request-ride-btn').addEventListener('click', async () => {
-      const btn = document.getElementById('request-ride-btn');
-      const statusEl = document.getElementById('request-status');
-      const dropoffTyped = dropoffInput.value.trim();
-
-      if(!pickupCoords || !pickupAddressText){
-        statusEl.style.color = 'var(--rust)';
-        statusEl.textContent = "We couldn't detect your pickup location yet. Tap the refresh icon to try again.";
-        return;
-      }
-      if(!dropoffTyped){
-        statusEl.style.color = 'var(--rust)';
-        statusEl.textContent = 'Enter a drop-off location.';
-        return;
-      }
-
-      btn.disabled = true; btn.textContent = 'Requesting…';
-
-      // Freeform fallback: if the passenger typed a dropoff without picking a
-      // suggestion (destination not in our data), geocode it best-effort on
-      // submit. If that also finds nothing, still submit with the typed text
-      // and null coordinates — the driver still sees the address in plain text.
-      if(!dropoffCoords){
-        const matches = await geocodeAddress(`${dropoffTyped}, Tamale, Ghana`);
-        if(matches.length > 0){
-          selectDropoff(matches[0]);
-        }
-      }
-
-      const { data, error } = await window.YellowRide.supabaseClient.from('rides').insert({
-        passenger_id: currentProfile.id,
-        pickup_address: pickupAddressText, pickup_lat: pickupCoords.lat, pickup_lng: pickupCoords.lng,
-        dropoff_address: dropoffTyped,
-        dropoff_lat: dropoffCoords ? dropoffCoords.lat : null,
-        dropoff_lng: dropoffCoords ? dropoffCoords.lng : null,
-        distance_km: currentDistanceKm,
-        status: 'requested'
-      }).select().single();
-
-      btn.disabled = false; btn.textContent = 'Request Ride';
-
-      if(error){ statusEl.style.color = 'var(--rust)'; statusEl.textContent = error.message; return; }
-
-      activeRideId = data.id;
-      showActiveRide(data);
-      subscribeToActiveRide(data.id);
-    });
-
-    function showActiveRide(ride){
-      document.getElementById('request-form-block').style.display = 'none';
-      document.getElementById('active-ride-block').style.display = 'block';
-      updateRideStatusUI(ride);
-    }
-
-    function updateRideStatusUI(ride){
-      const badge = document.getElementById('ride-status-badge');
-      const text = document.getElementById('ride-status-text');
-      const driverBlock = document.getElementById('driver-code-block');
-      const actionsBlock = document.getElementById('driver-actions-block');
-
-      const statusLabels = {
-        requested: ['Requested', 'Looking for a nearby driver…'],
-        accepted: ['Accepted', 'Your driver is on the way. Agree your fare directly with them.'],
-        driver_arriving: ['Arriving', 'Your driver is nearly here.'],
-        in_progress: ['In progress', 'Trip in progress. Enjoy the ride!'],
-        completed: ['Completed', 'Trip complete. Thanks for riding with YellowGo Ride.'],
-        cancelled: ['Cancelled', 'This ride was cancelled.'],
-        no_driver_found: ['No driver found', 'No drivers were available. Please try again.']
-      };
-      const [label, desc] = statusLabels[ride.status] || ['Unknown', ''];
-      badge.textContent = label;
-      text.textContent = desc;
-
-      if(ride.status === 'completed'){
-        badge.classList.remove('pulsing');
-        setTimeout(() => { window.location.href = `rate-trip.html?ride=${ride.id}`; }, 1200);
-        return;
-      }
-      if(ride.status === 'cancelled' || ride.status === 'no_driver_found'){
-        badge.classList.remove('pulsing');
-        setTimeout(resetToRequestForm, 2500);
-      }
-
-      if(ride.driver_id){
-        driverBlock.style.display = 'block';
-        actionsBlock.style.display = 'flex';
-        loadDriverInfo(ride.driver_id);
-      }
-    }
-
-    async function loadDriverInfo(driverId){
-      const { data, error } = await window.YellowRide.supabaseClient
-        .from('drivers').select('driver_code, profiles(full_name, phone_number)').eq('id', driverId).single();
-      if(error || !data) return;
-
-      document.getElementById('driver-code-value').textContent = data.driver_code || '—';
-      document.getElementById('driver-name-value').textContent = data.profiles?.full_name || 'Driver';
-
-      const driverPhone = data.profiles?.phone_number;
-      const callBtn = document.getElementById('call-driver-btn');
-      const messageBtn = document.getElementById('message-driver-btn');
-      if(driverPhone){
-        callBtn.onclick = () => { window.location.href = `tel:${driverPhone}`; };
-        messageBtn.onclick = () => { window.location.href = `sms:${driverPhone}`; };
-      } else {
-        callBtn.onclick = () => alert("This driver's phone number isn't available.");
-        messageBtn.onclick = () => alert("This driver's phone number isn't available.");
-      }
-
-      if(driverLocationUnsubscribe) driverLocationUnsubscribe();
-      driverLocationUnsubscribe = window.YellowRide.subscribeToDriverLocation(driverId, (lat, lng) => {
-        if(driverMarker) driverMarker.setLatLng([lat, lng]);
-        else driverMarker = L.marker([lat, lng], { icon: YR_ICONS.driver }).addTo(map);
-        map.panTo([lat, lng]);
-      });
-    }
-
-    function subscribeToActiveRide(rideId){
-      if(rideUnsubscribe) rideUnsubscribe();
-      rideUnsubscribe = window.YellowRide.subscribeToRide(rideId, (updatedRide) => updateRideStatusUI(updatedRide));
-
-      if(rideStatusPollInterval) clearInterval(rideStatusPollInterval);
-      rideStatusPollInterval = setInterval(async () => {
-        if(!activeRideId) { clearInterval(rideStatusPollInterval); return; }
-        const { data } = await window.YellowRide.supabaseClient.from('rides').select('*').eq('id', rideId).single();
-        if(data) updateRideStatusUI(data);
-      }, 6000);
-    }
-
-    // ============ CANCEL MODAL ============
-    let selectedCancelReason = null;
-    document.getElementById('cancel-ride-btn').addEventListener('click', () => {
-      selectedCancelReason = null;
-      document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
-      document.getElementById('cancel-modal-confirm').disabled = true;
-      document.getElementById('cancel-modal').classList.add('show');
-    });
-    document.querySelectorAll('#cancel-reason-options .reason-option').forEach(opt => {
-      opt.addEventListener('click', () => {
-        document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
-        opt.classList.add('selected');
-        selectedCancelReason = opt.querySelector('input').value;
-        document.getElementById('cancel-modal-confirm').disabled = false;
-      });
-    });
-    document.getElementById('cancel-modal-dismiss').addEventListener('click', () => document.getElementById('cancel-modal').classList.remove('show'));
-    document.getElementById('cancel-modal-confirm').addEventListener('click', async () => {
-      if(!activeRideId || !selectedCancelReason) return;
-      await window.YellowRide.supabaseClient.from('rides').update({
-        status: 'cancelled', cancel_reason: selectedCancelReason, cancelled_by: currentProfile.id, cancelled_at: new Date().toISOString()
-      }).eq('id', activeRideId).eq('status', 'requested');
-      document.getElementById('cancel-modal').classList.remove('show');
-      resetToRequestForm();
-    });
-
-    function resetToRequestForm(){
-      document.getElementById('request-form-block').style.display = 'block';
-      document.getElementById('active-ride-block').style.display = 'none';
-      document.getElementById('driver-code-block').style.display = 'none';
-      document.getElementById('driver-actions-block').style.display = 'none';
-      dropoffInput.value = '';
-      document.getElementById('distance-value').textContent = '—';
-      dropoffCoords = null; currentDistanceKm = null;
-      if(dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
-      if(driverMarker){ map.removeLayer(driverMarker); driverMarker = null; }
-      if(routeLine){ map.removeLayer(routeLine); routeLine = null; }
-      activeRideId = null;
-      if(rideUnsubscribe) rideUnsubscribe();
-      if(rideStatusPollInterval){ clearInterval(rideStatusPollInterval); rideStatusPollInterval = null; }
-      if(driverLocationUnsubscribe) driverLocationUnsubscribe();
-      detectPickupLocation(); // refresh pickup for the next ride
-      loadRideHistory();
-    }
-
-    async function checkForActiveRide(){
-      const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
-        .eq('passenger_id', currentProfile.id).in('status', ['requested','accepted','driver_arriving','in_progress']).order('requested_at', { ascending: false }).limit(1);
-      if(data && data.length > 0){
-        activeRideId = data[0].id;
-        showActiveRide(data[0]);
-        subscribeToActiveRide(data[0].id);
-      }
-    }
-
-    async function loadRideHistory(){
-      const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
-        .eq('passenger_id', currentProfile.id).in('status', ['completed','cancelled']).order('requested_at', { ascending: false }).limit(20);
-
-      const listEl = document.getElementById('history-list');
-      if(!data || data.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i>No past rides yet.</div>`; return; }
-
-      listEl.innerHTML = data.map(ride => `
-        <div class="history-item">
-          <div class="history-top"><span class="history-route">${escapeHtml(ride.pickup_address)} → ${escapeHtml(ride.dropoff_address)}</span></div>
-          <div class="history-meta">${new Date(ride.requested_at).toLocaleDateString()} · ${ride.status.replace(/_/g,' ')}
-            ${ride.status === 'completed' ? ` · <a href="rate-trip.html?ride=${ride.id}" style="color:var(--green);">Rate / report</a>` : ''}
-          </div>
-        </div>`).join('');
-    }
-
-    // ============ NOTIFICATIONS ============
-    // Requires a `notifications` table: id, user_id, title, body, is_read, created_at, link_url (optional)
-    async function loadNotifications(){
-      const { data } = await window.YellowRide.supabaseClient
-        .from('notifications').select('*').eq('user_id', currentProfile.id)
-        .order('created_at', { ascending: false }).limit(30);
-      renderNotifications(data || []);
-    }
-
-    function renderNotifications(items){
-      const listEl = document.getElementById('notif-list');
-      const badge = document.getElementById('notif-badge');
-      const unreadCount = items.filter(n => !n.is_read).length;
-      if(unreadCount > 0){
-        badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
-        badge.style.display = 'flex';
-      } else {
-        badge.style.display = 'none';
-      }
-
-      if(items.length === 0){
-        listEl.innerHTML = `<div class="empty-state" style="padding:24px 10px;"><i class="fa-solid fa-bell-slash"></i>No notifications yet.</div>`;
-        return;
-      }
-      listEl.innerHTML = items.map(n => `
-        <div class="notif-item ${n.is_read ? '' : 'unread'}">
-          <div class="notif-title">${escapeHtml(n.title)}</div>
-          <div class="notif-body">${escapeHtml(n.body || '')}</div>
-          <div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
-        </div>`).join('');
-    }
-
-    // ============ NOTIFICATION SOUND ============
-    // Uses the Web Audio API to generate a short two-tone chime — no external
-    // sound file needed. Browsers block audio before any user interaction, so
-    // the AudioContext is created lazily on the passenger's first tap anywhere
-    // on the page, then reused for every notification after that.
-    let audioCtx = null;
-    function initAudioContext(){
-      if(!audioCtx){
-        try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
-        catch(err){ console.warn('Web Audio not available:', err); }
-      }
-    }
-    document.addEventListener('click', initAudioContext, { once: true });
-
-    function playNotificationSound(){
-      if(!audioCtx) return; // no user interaction yet — browser would block it anyway
-      const now = audioCtx.currentTime;
-      [880, 1175].forEach((freq, i) => {
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.value = freq;
-        const start = now + i * 0.12;
-        gain.gain.setValueAtTime(0, start);
-        gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
-        gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
-        osc.connect(gain).connect(audioCtx.destination);
-        osc.start(start);
-        osc.stop(start + 0.26);
-      });
-    }
-
-    function subscribeToNotifications(){
-      if(notifChannel) notifChannel.unsubscribe();
-      notifChannel = window.YellowRide.supabaseClient.channel('passenger-notifications')
-        .on('postgres_changes', {
-          event: 'INSERT', schema: 'public', table: 'notifications',
-          filter: `user_id=eq.${currentProfile.id}`
-        }, () => {
-          playNotificationSound();
-          loadNotifications();
-        })
-        .subscribe();
-    }
-
-    document.getElementById('notif-btn').addEventListener('click', async (e) => {
-      e.stopPropagation();
-      const dropdown = document.getElementById('notif-dropdown');
-      const opening = !dropdown.classList.contains('show');
-      dropdown.classList.toggle('show');
-
-      if(opening){
-        // Mark all as read when opened
-        await window.YellowRide.supabaseClient.from('notifications')
-          .update({ is_read: true }).eq('user_id', currentProfile.id).eq('is_read', false);
-        document.getElementById('notif-badge').style.display = 'none';
-        loadNotifications();
-      }
-    });
-    document.addEventListener('click', (e) => {
-      const dropdown = document.getElementById('notif-dropdown');
-      if(!dropdown.contains(e.target) && e.target.id !== 'notif-btn'){
-        dropdown.classList.remove('show');
-      }
-    });
-
-    document.getElementById('avatar-btn').addEventListener('click', () => {
-      if(confirm('Log out of YellowGo Ride?')){
-        window.YellowRide.logoutUser().then(() => window.location.href = 'login.html');
-      }
-    });
-  </script>
+<div class="topnav">
+<div class="brand">
+<span class="dot"></span>YellowGo Ride
+</div>
+<div class="nav-actions">
+<button class="icon-btn" id="notif-btn"><i class="fa-solid fa-bell"></i><span class="badge" id="notif-badge" style="display:none;"></span></button>
+<button class="avatar-btn" id="avatar-btn">--</button>
+</div>
+</div>
+
+<div class="notif-dropdown" id="notif-dropdown">
+<div class="notif-header">
+Notifications
+</div>
+<div id="notif-list">
+<div class="empty-state" style="padding:24px 10px;">
+<i class="fa-solid fa-bell-slash"></i>No notifications yet.
+</div>
+</div>
+</div>
+
+<div class="layout">
+<div class="side-panel">
+<div class="tabs-row">
+<button class="active" data-panel="request">Request</button>
+<button data-panel="history">History</button>
+<button data-panel="favorites">Favorites</button>
+</div>
+
+<!-- REQUEST TAB -->
+<div class="panel-section active" id="panel-request">
+<div id="request-form-block">
+<h2 class="section-title">Where to?</h2>
+<p class="section-sub">
+We'll find the nearest available driver. Fares are agreed directly with your driver.
+</p>
+
+<div class="field">
+<label>Pickup location</label>
+<div class="pickup-display">
+<i class="fa-solid fa-circle-dot dot"></i>
+<span class="pickup-text placeholder" id="pickup-text">Detecting your location…</span>
+<button class="pickup-refresh-btn" id="pickup-refresh-btn" title="Refresh location"><i class="fa-solid fa-rotate"></i></button>
+</div>
+<div class="pickup-hint" id="pickup-hint">
+We use your current location so your driver knows exactly where to meet you.
+</div>
+</div>
+
+<div class="field" style="position:relative;">
+<label for="dropoff-input">Drop-off location</label>
+<div class="input-with-icon">
+<i class="fa-solid fa-location-dot" style="color:var(--green);"></i>
+<input type="text" id="dropoff-input" placeholder="Type any destination — e.g. Tamale Teaching Hospital" autocomplete="off" />
+</div>
+<div class="yr-autocomplete-dropdown" id="dropoff-dropdown"></div>
+<div class="fav-chips" id="popular-chips-dropoff"></div>
+<div class="fav-chips" id="fav-chips"></div>
+</div>
+
+<div class="field-hint" style="font-size:11.5px; color:var(--muted); margin-top:-8px; margin-bottom:14px;">
+Not listed? Just type it and tap Request Ride — we'll pass your typed address straight to the driver even without an exact map match.
+</div>
+
+<div class="distance-note">
+<span>Estimated distance</span>
+<strong id="distance-value">—</strong>
+</div>
+
+<div class="status-msg" id="request-status" style="margin-top:10px; font-size:13px;"></div>
+<button class="btn-primary" id="request-ride-btn">Request Ride</button>
+</div>
+
+<div id="active-ride-block" style="display:none;">
+<div class="ride-status-card">
+<span class="status-badge pulsing" id="ride-status-badge">Requested</span>
+<p style="font-size:13.5px; margin-top:12px; color:var(--muted);" id="ride-status-text">
+Looking for a nearby driver…
+</p>
+
+<div class="driver-code-display" id="driver-code-block" style="display:none;">
+<div class="label">
+Your Driver
+</div>
+<div class="code" id="driver-code-value">
+—
+</div>
+<div class="name" id="driver-name-value">
+—
+</div>
+</div>
+
+<div class="driver-actions" id="driver-actions-block" style="display:none;">
+<button id="call-driver-btn"><i class="fa-solid fa-phone"></i> Call</button>
+<button id="message-driver-btn"><i class="fa-solid fa-comment"></i> Message</button>
+</div>
+</div>
+<button class="btn-secondary" id="cancel-ride-btn">Cancel Request</button>
+</div>
+</div>
+
+<!-- HISTORY TAB -->
+<div class="panel-section" id="panel-history">
+<h2 class="section-title">Ride History</h2>
+<p class="section-sub">
+Your past trips.
+</p>
+<div id="history-list">
+<div class="empty-state">
+<i class="fa-solid fa-clock-rotate-left"></i>Loading your rides…
+</div>
+</div>
+</div>
+
+<!-- FAVORITES TAB -->
+<div class="panel-section" id="panel-favorites">
+<h2 class="section-title">Favorite Locations</h2>
+<p class="section-sub">
+Save places you go often for faster booking.
+</p>
+<div class="field">
+<label for="fav-label">Label</label>
+<div class="input-with-icon">
+<i class="fa-solid fa-tag"></i><input type="text" id="fav-label" placeholder="e.g. Home, Work" />
+</div>
+</div>
+<div class="field">
+<label for="fav-address">Address</label>
+<div class="input-with-icon">
+<i class="fa-solid fa-map-pin"></i><input type="text" id="fav-address" placeholder="Street / landmark" />
+</div>
+</div>
+<button class="btn-primary" id="save-fav-btn">Save Location</button>
+<div id="favorites-list" style="margin-top:20px;"></div>
+</div>
+</div>
+
+<div class="map-area">
+<div id="map-canvas"></div>
+</div>
+</div>
+
+<!-- ============ CANCEL MODAL ============ -->
+<div class="modal-backdrop" id="cancel-modal">
+<div class="modal-card">
+<h3>Why are you cancelling?</h3>
+<div id="cancel-reason-options">
+<label class="reason-option"><input type="radio" name="cancel-reason" value="could_not_agree_price" style="display:none;" /> Couldn't agree on a price</label>
+<label class="reason-option"><input type="radio" name="cancel-reason" value="driver_unavailable" style="display:none;" /> Driver not available</label>
+<label class="reason-option"><input type="radio" name="cancel-reason" value="other" style="display:none;" /> Other</label>
+</div>
+<div class="modal-actions">
+<button class="modal-cancel-dismiss" id="cancel-modal-dismiss">Never mind</button>
+<button class="modal-cancel-confirm" id="cancel-modal-confirm" disabled>Cancel Ride</button>
+</div>
+</div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script src="maps-utils.js"></script>
+<script>
+let currentProfile = null;
+let activeRideId = null;
+let rideUnsubscribe = null;
+let rideStatusPollInterval = null;
+let driverLocationUnsubscribe = null;
+let notifChannel = null;
+
+let map = null, pickupMarker = null, dropoffMarker = null, driverMarker = null, routeLine = null;
+let pickupCoords = null, dropoffCoords = null, currentDistanceKm = null;
+let pickupAddressText = null;
+
+(async function init(){
+currentProfile = await window.YellowRide.requireRole('passenger');
+if (!currentProfile) return;
+
+document.getElementById('avatar-btn').textContent = getInitials(currentProfile.full_name);
+map = createMap('map-canvas');
+setupAddressAutocomplete();
+detectPickupLocation();
+await loadFavorites();
+await checkForActiveRide();
+await loadRideHistory();
+await loadNotifications();
+subscribeToNotifications();
+})();
+
+function getInitials(name){ if (!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0, 2).join('').toUpperCase(); }
+function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+
+document.querySelectorAll('.tabs-row button').forEach(btn => {
+btn.addEventListener('click', () => {
+document.querySelectorAll('.tabs-row button').forEach(b => b.classList.remove('active'));
+document.querySelectorAll('.panel-section').forEach(p => p.classList.remove('active'));
+btn.classList.add('active');
+document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
+});
+});
+
+// ============ PICKUP: AUTO-DETECTED CURRENT LOCATION ============
+async function reverseGeocode(lat, lng){
+try{
+const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+if (!res.ok) return null;
+const data = await res.json();
+return data?.display_name || null;
+} catch(err){
+console.warn('Reverse geocode failed', err);
+return null;
+}
+}
+
+function detectPickupLocation(){
+const textEl = document.getElementById('pickup-text');
+const hintEl = document.getElementById('pickup-hint');
+const refreshBtn = document.getElementById('pickup-refresh-btn');
+
+if (!navigator.geolocation){
+textEl.textContent = 'Location unavailable — enter pickup manually below.';
+textEl.classList.remove('placeholder');
+showManualPickupFallback();
+return;
+}
+
+refreshBtn.classList.add('spinning');
+textEl.textContent = 'Detecting your location…';
+textEl.classList.add('placeholder');
+
+navigator.geolocation.getCurrentPosition(async (pos) => {
+const { latitude, longitude } = pos.coords;
+pickupCoords = { lat: latitude, lng: longitude };
+
+if (pickupMarker) map.removeLayer(pickupMarker);
+pickupMarker = L.marker([latitude, longitude], { icon: YR_ICONS.pickup }).addTo(map);
+map.setView([latitude, longitude], 15);
+
+const address = await reverseGeocode(latitude, longitude);
+pickupAddressText = address || `Current location (${latitude.toFixed(5)}, ${longitude.toFixed(5)})`;
+
+textEl.textContent = pickupAddressText;
+textEl.classList.remove('placeholder');
+hintEl.textContent = 'This is your current GPS location.';
+refreshBtn.classList.remove('spinning');
+recalcRoute();
+renderPopularChips(); // re-sort suggested places now that we know where the passenger is
+}, (err) => {
+console.warn('Geolocation error:', err.message);
+refreshBtn.classList.remove('spinning');
+textEl.textContent = "Couldn't detect your location — enter it manually below.";
+textEl.classList.remove('placeholder');
+showManualPickupFallback();
+}, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
+}
+
+// Fallback: only shown if geolocation is denied/unavailable, so passengers
+// aren't stuck unable to request a ride at all.
+function showManualPickupFallback(){
+const container = document.querySelector('#request-form-block .field:first-of-type');
+if (document.getElementById('pickup-manual-input')) return; // already added
+const manualField = document.createElement('div');
+manualField.style.marginTop = '10px';
+manualField.innerHTML = `
+<div class="input-with-icon">
+<i class="fa-solid fa-circle-dot" style="color:var(--yellow);"></i>
+<input type="text" id="pickup-manual-input" placeholder="Type your pickup location" autocomplete="off" />
+</div>
+<div class="yr-autocomplete-dropdown" id="pickup-manual-dropdown"></div>`;
+container.appendChild(manualField);
+
+const manualInput = document.getElementById('pickup-manual-input');
+const manualDropdown = document.getElementById('pickup-manual-dropdown');
+attachAddressAutocomplete(manualInput, manualDropdown, (result) => {
+pickupCoords = { lat: result.lat, lng: result.lng };
+pickupAddressText = result.label;
+document.getElementById('pickup-text').textContent = result.label;
+document.getElementById('pickup-text').classList.remove('placeholder');
+if (pickupMarker) map.removeLayer(pickupMarker);
+pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], { icon: YR_ICONS.pickup }).addTo(map);
+recalcRoute();
+renderPopularChips(); // re-sort suggested places now that we know where the passenger is
+});
+}
+
+document.getElementById('pickup-refresh-btn').addEventListener('click', detectPickupLocation);
+
+// ============ DROPOFF: FREEFORM, AUTOCOMPLETE OPTIONAL ============
+const dropoffInput = document.getElementById('dropoff-input');
+
+// Approximate coordinates for common Tamale landmarks, used only to SORT
+// suggestions by distance from the passenger's current pickup point.
+// These are best-effort estimates, not survey-precise — good enough for
+// ranking "closest first", since the actual dropoff pin is still set by
+// a real geocode lookup (searchAndSelectDropoff) when a chip is tapped.
+const POPULAR_PLACES = [
+{ name: "Tamale Central Market", lat: 9.4034, lng: -0.8424 },
+{ name: "Tamale Teaching Hospital", lat: 9.4159, lng: -0.8421 },
+{ name: "Kamina Barracks", lat: 9.4351, lng: -0.8482 },
+{ name: "Education Ridge", lat: 9.4225, lng: -0.8367 },
+{ name: "Lamashegu", lat: 9.4271, lng: -0.8447 },
+{ name: "Sakasaka", lat: 9.3969, lng: -0.8144 },
+{ name: "Kalpohin", lat: 9.4193, lng: -0.8542 },
+{ name: "Vittin", lat: 9.4370, lng: -0.8290 },
+{ name: "Choggu", lat: 9.4453, lng: -0.8395 },
+{ name: "WA Junction", lat: 9.4084, lng: -0.8624 },
+{ name: "Gumbihini Roundabout", lat: 9.3922, lng: -0.8558 },
+];
+const CLOSEST_PLACES_COUNT = 6;
+
+function renderPopularChips(){
+const el = document.getElementById('popular-chips-dropoff');
+el.innerHTML = '';
+
+let placesToShow;
+if (pickupCoords){
+// Sort by real distance from where the passenger actually is right now
+placesToShow = POPULAR_PLACES
+.map(p => ({ ...p, dist: distanceKm(pickupCoords.lat, pickupCoords.lng, p.lat, p.lng) }))
+.sort((a, b) => a.dist - b.dist)
+.slice(0, CLOSEST_PLACES_COUNT);
+} else {
+// Pickup not detected yet — show the first few in default order,
+// will re-sort automatically once location comes through.
+placesToShow = POPULAR_PLACES.slice(0, CLOSEST_PLACES_COUNT);
+}
+
+placesToShow.forEach(place => {
+const chip = document.createElement('button');
+chip.className = 'fav-chip';
+chip.innerHTML = place.dist !== undefined
+? `${place.name}<span class="chip-dist">${place.dist < 1 ? Math.round(place.dist * 1000) + 'm': place.dist.toFixed(1) + 'km'}</span>`: place.name;
+chip.addEventListener('click', () => searchAndSelectDropoff(place.name));
+el.appendChild(chip);
+});
+}
+
+async function searchAndSelectDropoff(placeName){
+const dropdownEl = document.getElementById('dropoff-dropdown');
+dropoffInput.value = placeName;
+dropdownEl.innerHTML = `<div class="yr-autocomplete-item">Searching…</div>`;
+dropdownEl.style.display = 'block';
+
+const results = await geocodeAddress(`${placeName}, Tamale, Ghana`);
+if (!results.length){
+dropdownEl.style.display = 'none';
+return; // typed text stays — freeform submit will still work
+}
+dropdownEl.innerHTML = results.map((r, i) => `<div class="yr-autocomplete-item" data-idx="${i}">${r.label}</div>`).join('');
+dropdownEl.querySelectorAll('.yr-autocomplete-item[data-idx]').forEach((el, i) => {
+el.addEventListener('click', () => {
+dropoffInput.value = results[i].label;
+dropdownEl.style.display = 'none';
+selectDropoff(results[i]);
+});
+});
+}
+
+function selectDropoff(result){
+dropoffCoords = { lat: result.lat, lng: result.lng };
+if (dropoffMarker) map.removeLayer(dropoffMarker);
+dropoffMarker = L.marker([dropoffCoords.lat, dropoffCoords.lng], { icon: YR_ICONS.dropoff }).addTo(map);
+recalcRoute();
+}
+
+// If the passenger edits the dropoff text after selecting a match, the old
+// coordinates no longer correspond to what's typed — clear them so submit
+// falls back to a fresh geocode (or freeform) instead of using a stale pin.
+dropoffInput.addEventListener('input', () => {
+dropoffCoords = null;
+currentDistanceKm = null;
+document.getElementById('distance-value').textContent = '—';
+if (dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
+});
+
+function setupAddressAutocomplete(){
+attachAddressAutocomplete(dropoffInput, document.getElementById('dropoff-dropdown'), selectDropoff);
+renderPopularChips();
+}
+
+function recalcRoute(){
+if (pickupCoords && dropoffCoords){
+routeLine = drawRouteLine(map, routeLine, [pickupCoords.lat, pickupCoords.lng], [dropoffCoords.lat, dropoffCoords.lng]);
+currentDistanceKm = distanceKm(pickupCoords.lat, pickupCoords.lng, dropoffCoords.lat, dropoffCoords.lng);
+document.getElementById('distance-value').textContent = `~${currentDistanceKm.toFixed(1)} km`;
+} else {
+document.getElementById('distance-value').textContent = '—';
+currentDistanceKm = null;
+}
+}
+
+async function loadFavorites(){
+const { data } = await window.YellowRide.supabaseClient.from('favorite_locations').select('*').eq('passenger_id', currentProfile.id).order('created_at', { ascending: false });
+
+const chipsEl = document.getElementById('fav-chips');
+chipsEl.innerHTML = '';
+(data || []).forEach(loc => {
+const chip = document.createElement('button');
+chip.className = 'fav-chip';
+chip.textContent = loc.label;
+chip.addEventListener('click', () => {
+dropoffInput.value = loc.address;
+if (loc.lat && loc.lng && (loc.lat !== 0 || loc.lng !== 0)){
+selectDropoff({ lat: loc.lat, lng: loc.lng, label: loc.address });
+}
+});
+chipsEl.appendChild(chip);
+});
+
+const listEl = document.getElementById('favorites-list');
+if (!data || data.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-map-pin"></i>No saved locations yet.</div>`; return; }
+listEl.innerHTML = data.map(loc => `
+<div class="history-item">
+<div class="history-top"><span class="history-route">${escapeHtml(loc.label)}</span></div>
+<div class="history-meta">${escapeHtml(loc.address)}</div>
+</div>`).join('');
+}
+
+document.getElementById('save-fav-btn').addEventListener('click', async () => {
+const label = document.getElementById('fav-label').value.trim();
+const address = document.getElementById('fav-address').value.trim();
+if (!label || !address) return;
+const btn = document.getElementById('save-fav-btn');
+btn.disabled = true; btn.textContent = 'Saving…';
+const matches = await geocodeAddress(address);
+const coords = matches[0] || { lat: 0, lng: 0 };
+const { error } = await window.YellowRide.supabaseClient.from('favorite_locations').insert({
+passenger_id: currentProfile.id, label, address, lat: coords.lat, lng: coords.lng
+});
+btn.disabled = false; btn.textContent = 'Save Location';
+if (!error){ document.getElementById('fav-label').value = ''; document.getElementById('fav-address').value = ''; await loadFavorites(); }
+});
+
+document.getElementById('request-ride-btn').addEventListener('click', async () => {
+const btn = document.getElementById('request-ride-btn');
+const statusEl = document.getElementById('request-status');
+const dropoffTyped = dropoffInput.value.trim();
+
+if (!pickupCoords || !pickupAddressText){
+statusEl.style.color = 'var(--rust)';
+statusEl.textContent = "We couldn't detect your pickup location yet. Tap the refresh icon to try again.";
+return;
+}
+if (!dropoffTyped){
+statusEl.style.color = 'var(--rust)';
+statusEl.textContent = 'Enter a drop-off location.';
+return;
+}
+
+btn.disabled = true; btn.textContent = 'Requesting…';
+
+// Freeform fallback: if the passenger typed a dropoff without picking a
+// suggestion (destination not in our data), geocode it best-effort on
+// submit. If that also finds nothing, still submit with the typed text
+// and null coordinates — the driver still sees the address in plain text.
+if (!dropoffCoords){
+const matches = await geocodeAddress(`${dropoffTyped}, Tamale, Ghana`);
+if (matches.length > 0){
+selectDropoff(matches[0]);
+}
+}
+
+const { data, error } = await window.YellowRide.supabaseClient.from('rides').insert({
+passenger_id: currentProfile.id,
+pickup_address: pickupAddressText, pickup_lat: pickupCoords.lat, pickup_lng: pickupCoords.lng,
+dropoff_address: dropoffTyped,
+dropoff_lat: dropoffCoords ? dropoffCoords.lat: null,
+dropoff_lng: dropoffCoords ? dropoffCoords.lng: null,
+distance_km: currentDistanceKm,
+status: 'requested'
+}).select().single();
+
+btn.disabled = false; btn.textContent = 'Request Ride';
+
+if (error){ statusEl.style.color = 'var(--rust)'; statusEl.textContent = error.message; return; }
+
+activeRideId = data.id;
+showActiveRide(data);
+subscribeToActiveRide(data.id);
+});
+
+function showActiveRide(ride){
+document.getElementById('request-form-block').style.display = 'none';
+document.getElementById('active-ride-block').style.display = 'block';
+updateRideStatusUI(ride);
+}
+
+function updateRideStatusUI(ride){
+const badge = document.getElementById('ride-status-badge');
+const text = document.getElementById('ride-status-text');
+const driverBlock = document.getElementById('driver-code-block');
+const actionsBlock = document.getElementById('driver-actions-block');
+
+const statusLabels = {
+requested: ['Requested', 'Looking for a nearby driver…'],
+accepted: ['Accepted', 'Your driver is on the way. Agree your fare directly with them.'],
+driver_arriving: ['Arriving', 'Your driver is nearly here.'],
+in_progress: ['In progress', 'Trip in progress. Enjoy the ride!'],
+completed: ['Completed', 'Trip complete. Thanks for riding with YellowGo Ride.'],
+cancelled: ['Cancelled', 'This ride was cancelled.'],
+no_driver_found: ['No driver found', 'No drivers were available. Please try again.']
+};
+const [label, desc] = statusLabels[ride.status] || ['Unknown', ''];
+badge.textContent = label;
+text.textContent = desc;
+
+if (ride.status === 'completed'){
+badge.classList.remove('pulsing');
+setTimeout(() => { window.location.href = `rate-trip.html?ride=${ride.id}`; }, 1200);
+return;
+}
+if (ride.status === 'cancelled' || ride.status === 'no_driver_found'){
+badge.classList.remove('pulsing');
+setTimeout(resetToRequestForm, 2500);
+}
+
+if (ride.driver_id){
+driverBlock.style.display = 'block';
+actionsBlock.style.display = 'flex';
+loadDriverInfo(ride.driver_id);
+}
+}
+
+async function loadDriverInfo(driverId){
+const { data, error } = await window.YellowRide.supabaseClient
+.from('drivers').select('driver_code, profiles(full_name, phone_number)').eq('id', driverId).single();
+if (error || !data) return;
+
+document.getElementById('driver-code-value').textContent = data.driver_code || '—';
+document.getElementById('driver-name-value').textContent = data.profiles?.full_name || 'Driver';
+
+const driverPhone = data.profiles?.phone_number;
+const callBtn = document.getElementById('call-driver-btn');
+const messageBtn = document.getElementById('message-driver-btn');
+if (driverPhone){
+callBtn.onclick = () => { window.location.href = `tel:${driverPhone}`; };
+messageBtn.onclick = () => { window.location.href = `sms:${driverPhone}`; };
+} else {
+callBtn.onclick = () => alert("This driver's phone number isn't available.");
+messageBtn.onclick = () => alert("This driver's phone number isn't available.");
+}
+
+if (driverLocationUnsubscribe) driverLocationUnsubscribe();
+driverLocationUnsubscribe = window.YellowRide.subscribeToDriverLocation(driverId, (lat, lng) => {
+if (driverMarker) driverMarker.setLatLng([lat, lng]);
+else driverMarker = L.marker([lat, lng], { icon: YR_ICONS.driver }).addTo(map);
+map.panTo([lat, lng]);
+});
+}
+
+function subscribeToActiveRide(rideId){
+if (rideUnsubscribe) rideUnsubscribe();
+rideUnsubscribe = window.YellowRide.subscribeToRide(rideId, (updatedRide) => updateRideStatusUI(updatedRide));
+
+if (rideStatusPollInterval) clearInterval(rideStatusPollInterval);
+rideStatusPollInterval = setInterval(async () => {
+if (!activeRideId) { clearInterval(rideStatusPollInterval); return; }
+const { data } = await window.YellowRide.supabaseClient.from('rides').select('*').eq('id', rideId).single();
+if (data) updateRideStatusUI(data);
+}, 6000);
+}
+
+// ============ CANCEL MODAL ============
+let selectedCancelReason = null;
+document.getElementById('cancel-ride-btn').addEventListener('click', () => {
+selectedCancelReason = null;
+document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
+document.getElementById('cancel-modal-confirm').disabled = true;
+document.getElementById('cancel-modal').classList.add('show');
+});
+document.querySelectorAll('#cancel-reason-options .reason-option').forEach(opt => {
+opt.addEventListener('click', () => {
+document.querySelectorAll('#cancel-reason-options .reason-option').forEach(o => o.classList.remove('selected'));
+opt.classList.add('selected');
+selectedCancelReason = opt.querySelector('input').value;
+document.getElementById('cancel-modal-confirm').disabled = false;
+});
+});
+document.getElementById('cancel-modal-dismiss').addEventListener('click', () => document.getElementById('cancel-modal').classList.remove('show'));
+document.getElementById('cancel-modal-confirm').addEventListener('click', async () => {
+if (!activeRideId || !selectedCancelReason) return;
+await window.YellowRide.supabaseClient.from('rides').update({
+status: 'cancelled', cancel_reason: selectedCancelReason, cancelled_by: currentProfile.id, cancelled_at: new Date().toISOString()
+}).eq('id', activeRideId).eq('status', 'requested');
+document.getElementById('cancel-modal').classList.remove('show');
+resetToRequestForm();
+});
+
+function resetToRequestForm(){
+document.getElementById('request-form-block').style.display = 'block';
+document.getElementById('active-ride-block').style.display = 'none';
+document.getElementById('driver-code-block').style.display = 'none';
+document.getElementById('driver-actions-block').style.display = 'none';
+dropoffInput.value = '';
+document.getElementById('distance-value').textContent = '—';
+dropoffCoords = null; currentDistanceKm = null;
+if (dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
+if (driverMarker){ map.removeLayer(driverMarker); driverMarker = null; }
+if (routeLine){ map.removeLayer(routeLine); routeLine = null; }
+activeRideId = null;
+if (rideUnsubscribe) rideUnsubscribe();
+if (rideStatusPollInterval){ clearInterval(rideStatusPollInterval); rideStatusPollInterval = null; }
+if (driverLocationUnsubscribe) driverLocationUnsubscribe();
+detectPickupLocation(); // refresh pickup for the next ride
+loadRideHistory();
+}
+
+async function checkForActiveRide(){
+const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
+.eq('passenger_id', currentProfile.id).in('status', ['requested', 'accepted', 'driver_arriving', 'in_progress']).order('requested_at', { ascending: false }).limit(1);
+if (data && data.length > 0){
+activeRideId = data[0].id;
+showActiveRide(data[0]);
+subscribeToActiveRide(data[0].id);
+}
+}
+
+async function loadRideHistory(){
+const { data } = await window.YellowRide.supabaseClient.from('rides').select('*')
+.eq('passenger_id', currentProfile.id).in('status', ['completed', 'cancelled']).order('requested_at', { ascending: false }).limit(20);
+
+const listEl = document.getElementById('history-list');
+if (!data || data.length === 0){ listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-clock-rotate-left"></i>No past rides yet.</div>`; return; }
+
+listEl.innerHTML = data.map(ride => `
+<div class="history-item">
+<div class="history-top"><span class="history-route">${escapeHtml(ride.pickup_address)} → ${escapeHtml(ride.dropoff_address)}</span></div>
+<div class="history-meta">${new Date(ride.requested_at).toLocaleDateString()} · ${ride.status.replace(/_/g, ' ')}
+${ride.status === 'completed' ? ` · <a href="rate-trip.html?ride=${ride.id}" style="color:var(--green);">Rate / report</a>`: ''}
+</div>
+</div>`).join('');
+}
+
+// ============ NOTIFICATIONS ============
+// Requires a `notifications` table: id, user_id, title, body, is_read, created_at, link_url (optional)
+async function loadNotifications(){
+const { data } = await window.YellowRide.supabaseClient
+.from('notifications').select('*').eq('user_id', currentProfile.id)
+.order('created_at', { ascending: false }).limit(30);
+renderNotifications(data || []);
+}
+
+function renderNotifications(items){
+const listEl = document.getElementById('notif-list');
+const badge = document.getElementById('notif-badge');
+const unreadCount = items.filter(n => !n.is_read).length;
+if (unreadCount > 0){
+badge.textContent = unreadCount > 9 ? '9+': String(unreadCount);
+badge.style.display = 'flex';
+} else {
+badge.style.display = 'none';
+}
+
+if (items.length === 0){
+listEl.innerHTML = `<div class="empty-state" style="padding:24px 10px;"><i class="fa-solid fa-bell-slash"></i>No notifications yet.</div>`;
+return;
+}
+listEl.innerHTML = items.map(n => `
+<div class="notif-item ${n.is_read ? '': 'unread'}">
+<div class="notif-title">${escapeHtml(n.title)}</div>
+<div class="notif-body">${escapeHtml(n.body || '')}</div>
+<div class="notif-time">${new Date(n.created_at).toLocaleString()}</div>
+</div>`).join('');
+}
+
+// ============ NOTIFICATION SOUND ============
+// Uses the Web Audio API to generate a short two-tone chime — no external
+// sound file needed. Browsers block audio before any user interaction, so
+// the AudioContext is created lazily on the passenger's first tap anywhere
+// on the page, then reused for every notification after that.
+let audioCtx = null;
+function initAudioContext(){
+if (!audioCtx){
+try{ audioCtx = new (window.AudioContext || window.webkitAudioContext)(); }
+catch(err){ console.warn('Web Audio not available:', err); }
+}
+}
+document.addEventListener('click', initAudioContext, { once: true });
+
+function playNotificationSound(){
+if (!audioCtx) return; // no user interaction yet — browser would block it anyway
+const now = audioCtx.currentTime;
+[880, 1175].forEach((freq, i) => {
+const osc = audioCtx.createOscillator();
+const gain = audioCtx.createGain();
+osc.type = 'sine';
+osc.frequency.value = freq;
+const start = now + i * 0.12;
+gain.gain.setValueAtTime(0, start);
+gain.gain.linearRampToValueAtTime(0.18, start + 0.02);
+gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.25);
+osc.connect(gain).connect(audioCtx.destination);
+osc.start(start);
+osc.stop(start + 0.26);
+});
+}
+
+function subscribeToNotifications(){
+if (notifChannel) notifChannel.unsubscribe();
+notifChannel = window.YellowRide.supabaseClient.channel('passenger-notifications')
+.on('postgres_changes', {
+event: 'INSERT', schema: 'public', table: 'notifications',
+filter: `user_id=eq.${currentProfile.id}`
+}, () => {
+playNotificationSound();
+loadNotifications();
+})
+.subscribe();
+}
+
+document.getElementById('notif-btn').addEventListener('click', async (e) => {
+e.stopPropagation();
+const dropdown = document.getElementById('notif-dropdown');
+const opening = !dropdown.classList.contains('show');
+dropdown.classList.toggle('show');
+
+if (opening){
+// Mark all as read when opened
+await window.YellowRide.supabaseClient.from('notifications')
+.update({ is_read: true }).eq('user_id', currentProfile.id).eq('is_read', false);
+document.getElementById('notif-badge').style.display = 'none';
+loadNotifications();
+}
+});
+document.addEventListener('click', (e) => {
+const dropdown = document.getElementById('notif-dropdown');
+if (!dropdown.contains(e.target) && e.target.id !== 'notif-btn'){
+dropdown.classList.remove('show');
+}
+});
+
+document.getElementById('avatar-btn').addEventListener('click', () => {
+if (confirm('Log out of YellowGo Ride?')){
+window.YellowRide.logoutUser().then(() => window.location.href = 'login.html');
+}
+});
+</script>
 </body>
-</html>
+  </html>
