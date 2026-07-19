@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YellowGo Ride — Send SMS</title>
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" href="icon-32.png" type="image/png" sizes="32x32">
+<link rel="icon" href="icon-192.png" type="image/png" sizes="192x192">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+--charcoal: #161512;
+--white: #FFFCF5;
+--yellow: #FFC93C;
+--green: #0B6E4F;
+--rust: #C4432B;
+--line: #E8E1CF;
+--muted: #8a8577;
+--text: #161512;
+}
+*{box-sizing: border-box;
+margin: 0;
+padding: 0;
+}
+body{ font-family: 'Inter',sans-serif;
+background: var(--white);
+color: var(--text);
+min-height: 100vh;
+}
+@media (prefers-reduced-motion: reduce){*{animation-duration: 0.01ms !important;
+transition-duration: 0.01ms !important;
+}}
+
+.topnav{ display: flex;
+align-items: center;
+justify-content: space-between;
+padding: 14px 28px;
+background: var(--charcoal);
+color: var(--white);
+}
+.brand{display: flex;
+align-items: center;
+gap: 9px;
+font-family: 'Sora',sans-serif;
+font-weight: 800;
+font-size: 19px;
+}
+.brand .dot{width: 9px;
+height: 9px;
+border-radius: 50%;
+background: var(--yellow);
+}
+.back-link{color: var(--white);
+text-decoration: none;
+font-size: 13px;
+display: flex;
+align-items: center;
+gap: 6px;
+}
+.back-link:hover{color: var(--yellow);
+}
+
+.page-wrap{ max-width: 640px;
+margin: 0 auto;
+padding: 32px 24px 80px;
+}
+.page-header{ margin-bottom: 26px;
+}
+.page-header h1{ font-family: 'Sora',sans-serif;
+font-size: 24px;
+font-weight: 700;
+margin-bottom: 6px;
+}
+.page-header p{ color: var(--muted);
+font-size: 13.5px;
+}
+
+.section-card{ border: 1.5px solid var(--line);
+border-radius: 14px;
+padding: 20px;
+margin-bottom: 22px;
+}
+.section-card h2{ font-family: 'Sora',sans-serif;
+font-size: 15px;
+margin-bottom: 14px;
+}
+
+.recipient-grid{ display: grid;
+grid-template-columns: 1fr 1fr;
+gap: 8px;
+margin-bottom: 14px;
+}
+@media (max-width:480px){ .recipient-grid{ grid-template-columns: 1fr;
+} }
+.recipient-option{
+border: 1.5px solid var(--line);
+border-radius: 10px;
+padding: 12px 14px;
+cursor: pointer;
+font-size: 13.5px;
+font-weight: 600;
+display: flex;
+align-items: center;
+gap: 9px;
+transition: border-color .15s, background .15s;
+}
+.recipient-option input{ accent-color: var(--green);
+}
+.recipient-option.selected{ border-color: var(--green);
+background: rgba(11,110,79,0.05);
+}
+.recipient-option .icon{ color: var(--muted);
+}
+.recipient-option.selected .icon{ color: var(--green);
+}
+
+.field{ margin-bottom: 6px;
+}
+.field label{ display: block;
+font-size: 12.5px;
+font-weight: 600;
+margin-bottom: 6px;
+}
+.field textarea, .field input{
+width: 100%;
+padding: 12px 14px;
+border: 1.5px solid var(--line);
+border-radius: 10px;
+font-size: 14px;
+font-family: 'Inter',sans-serif;
+background: var(--white);
+color: var(--text);
+resize: vertical;
+}
+.field textarea:focus, .field input:focus{ outline: none;
+border-color: var(--green);
+box-shadow: 0 0 0 3px rgba(11,110,79,0.12);
+}
+.field-hint{ font-size: 11.5px;
+color: var(--muted);
+margin-top: 5px;
+}
+
+.char-counter{
+display: flex;
+justify-content: space-between;
+font-size: 11.5px;
+color: var(--muted);
+margin-top: 6px;
+font-family: 'JetBrains Mono',monospace;
+}
+.char-counter.warn{ color: var(--rust);
+}
+
+.btn-primary{
+width: 100%;
+padding: 14px 0;
+background: var(--yellow);
+color: var(--charcoal);
+border: none;
+border-radius: 10px;
+font-family: 'Sora',sans-serif;
+font-weight: 700;
+font-size: 15px;
+cursor: pointer;
+transition: box-shadow .12s, transform .12s;
+}
+.btn-primary:hover{ box-shadow: 0 6px 16px rgba(255,201,60,0.35);
+}
+.btn-primary:active{ transform: scale(0.98);
+}
+.btn-primary:disabled{ opacity: 0.5;
+cursor: not-allowed;
+box-shadow: none;
+}
+
+.status-msg{ margin-top: 14px;
+padding: 12px 14px;
+border-radius: 10px;
+font-size: 13.5px;
+display: none;
+line-height: 1.5;
+}
+.status-msg.error{ display: block;
+background: rgba(196,67,43,0.08);
+color: var(--rust);
+border: 1px solid rgba(196,67,43,0.25);
+}
+.status-msg.success{ display: block;
+background: rgba(11,110,79,0.08);
+color: var(--green);
+border: 1px solid rgba(11,110,79,0.25);
+}
+
+.log-item{ border-bottom: 1px solid var(--line);
+padding: 12px 0;
+font-size: 13px;
+}
+.log-item:last-child{ border-bottom: none;
+}
+.log-top{ display: flex;
+justify-content: space-between;
+align-items: baseline;
+gap: 10px;
+}
+.log-phone{ font-family: 'JetBrains Mono',monospace;
+font-size: 12px;
+color: var(--text);
+}
+.log-time{ font-size: 11px;
+color: var(--muted);
+flex-shrink: 0;
+}
+.log-msg{ color: var(--muted);
+font-size: 12px;
+margin-top: 3px;
+white-space: nowrap;
+overflow: hidden;
+text-overflow: ellipsis;
+}
+.pill{ font-family: 'JetBrains Mono',monospace;
+font-size: 10px;
+padding: 2px 7px;
+border-radius: 999px;
+text-transform: uppercase;
+flex-shrink: 0;
+}
+.pill.sent{ background: rgba(11,110,79,0.12);
+color: var(--green);
+}
+.pill.failed{ background: rgba(196,67,43,0.12);
+color: var(--rust);
+}
+.empty-state{ text-align: center;
+padding: 30px 10px;
+color: var(--muted);
+font-size: 13px;
+}
+
+@media (prefers-color-scheme: dark){
+:root{ --text: #F1EDE0;
+}
+body{ background: #0F0E0C;
+}
+.section-card, .log-item{ border-color: #2A2820;
+}
+.recipient-option{ border-color: #2A2820;
+}
+.field textarea, .field input{ background: #1B1A16;
+border-color: #2A2820;
+}
+}
+</style>
+</head>
+<body>
+
+<div class="topnav">
+<div class="brand">
+<span class="dot"></span>YellowGo Ride
+</div>
+<a href="admin-dashboard.html" class="back-link"><i class="fa-solid fa-arrow-left"></i> Back to dashboard</a>
+</div>
+
+<div class="page-wrap">
+<div class="page-header">
+<h1>Send SMS</h1>
+<p>
+Send a manual message directly to passengers, drivers, or a specific number — delivered via your connected SMS gateway.
+</p>
+</div>
+
+<div class="section-card">
+<h2>Recipients</h2>
+<div class="recipient-grid" id="recipient-grid">
+<label class="recipient-option selected" data-value="all_passengers">
+<input type="radio" name="recipient" value="all_passengers" checked />
+<i class="fa-solid fa-user icon"></i> All Passengers
+</label>
+<label class="recipient-option" data-value="all_drivers">
+<input type="radio" name="recipient" value="all_drivers" />
+<i class="fa-solid fa-motorcycle icon"></i> All Drivers
+</label>
+<label class="recipient-option" data-value="all">
+<input type="radio" name="recipient" value="all" />
+<i class="fa-solid fa-users icon"></i> Everyone
+</label>
+<label class="recipient-option" data-value="specific">
+<input type="radio" name="recipient" value="specific" />
+<i class="fa-solid fa-phone icon"></i> Specific Number(s)
+</label>
+</div>
+
+<div class="field" id="specific-numbers-field" style="display:none;">
+<label for="specific-numbers-input">Phone number(s)</label>
+<textarea id="specific-numbers-input" rows="2" placeholder="0555358325, 0244000000 — separate multiple numbers with commas"></textarea>
+<div class="field-hint">
+One or more numbers, separated by commas.
+</div>
+</div>
+</div>
+
+<div class="section-card">
+<h2>Message</h2>
+<div class="field">
+<textarea id="message-input" rows="4" placeholder="Type your message…"
+maxlength="880"></textarea>
+</div>
+<div class="char-counter" id="char-counter">
+0 / 160 characters · 1 SMS segment
+</div>
+</div>
+
+<button class="btn-primary" id="send-btn">Send Message</button>
+<div class="status-msg" id="send-status"></div>
+
+<div class="section-card" style="margin-top:26px;">
+<h2>Recent broadcasts</h2>
+<div id="log-list">
+<div class="empty-state">
+<i class="fa-solid fa-paper-plane"></i><br>Loading recent sends…
+</div>
+</div>
+</div>
+</div>
+
+<script src="supabase-config.js"></script>
+<script>
+// Update this to your actual deployed Edge Function URL, same pattern as the OTP setup:
+// https://YOUR_PROJECT_REF.supabase.co/functions/v1/admin-send-sms
+const ADMIN_SMS_URL = "https://ygdydzwhtcfuoedyxvjb.supabase.co/functions/v1/dynamic-handler";
+
+let currentProfile = null;
+
+(async function init(){
+currentProfile = await window.YellowRide.requireRole('admin');
+if (!currentProfile) return;
+await loadRecentLog();
+})();
+
+// ---------- Recipient selector ----------
+document.querySelectorAll('.recipient-option').forEach(opt => {
+opt.addEventListener('click', () => {
+document.querySelectorAll('.recipient-option').forEach(o => o.classList.remove('selected'));
+opt.classList.add('selected');
+opt.querySelector('input').checked = true;
+document.getElementById('specific-numbers-field').style.display =
+opt.dataset.value === 'specific' ? 'block': 'none';
+});
+});
+
+// ---------- Character / segment counter ----------
+const messageInput = document.getElementById('message-input');
+const charCounter = document.getElementById('char-counter');
+messageInput.addEventListener('input', () => {
+const len = messageInput.value.length;
+const segments = Math.max(1, Math.ceil(len / 160));
+charCounter.textContent = `${len} / ${segments * 160} characters · ${segments} SMS segment${segments > 1 ? 's': ''}`;
+charCounter.classList.toggle('warn', segments > 1);
+});
+
+// ---------- Send ----------
+document.getElementById('send-btn').addEventListener('click', async () => {
+const btn = document.getElementById('send-btn');
+const statusEl = document.getElementById('send-status');
+const selected = document.querySelector('input[name="recipient"]:checked').value;
+const message = messageInput.value.trim();
+
+if (!message){
+statusEl.className = 'status-msg error';
+statusEl.textContent = 'Enter a message to send.';
+return;
+}
+
+let payload = { message };
+if (selected === 'specific'){
+const raw = document.getElementById('specific-numbers-input').value.trim();
+const numbers = raw.split(',').map(n => n.trim()).filter(Boolean);
+if (numbers.length === 0){
+statusEl.className = 'status-msg error';
+statusEl.textContent = 'Enter at least one phone number.';
+return;
+}
+payload.recipients = numbers;
+} else {
+payload.recipient_group = selected;
+}
+
+const confirmLabel = {
+all_passengers: 'ALL passengers',
+all_drivers: 'ALL drivers',
+all: 'EVERYONE (all passengers and drivers)',
+specific: `${payload.recipients?.length || 0} number(s)`
+}[selected];
+
+if (!confirm(`Send this message to ${confirmLabel}?\n\n"${message}"`)) return;
+
+btn.disabled = true;
+btn.textContent = 'Sending…';
+statusEl.className = '';
+statusEl.style.display = 'none';
+
+try{
+const { data: sessionData } = await window.YellowRide.supabaseClient.auth.getSession();
+const accessToken = sessionData?.session?.access_token;
+
+const res = await fetch(ADMIN_SMS_URL, {
+method: 'POST',
+headers: {
+'Content-Type': 'application/json',
+'Authorization': `Bearer ${accessToken}`
+},
+body: JSON.stringify(payload)
+});
+const data = await res.json();
+
+btn.disabled = false;
+btn.textContent = 'Send Message';
+
+if (!data.success){
+statusEl.className = 'status-msg error';
+statusEl.textContent = data.error || 'Something went wrong.';
+return;
+}
+
+statusEl.className = 'status-msg success';
+statusEl.textContent = `Sent to ${data.sent} of ${data.total} recipient(s).` +
+(data.failed > 0 ? ` ${data.failed} failed to deliver.`: '');
+messageInput.value = '';
+charCounter.textContent = '0 / 160 characters · 1 SMS segment';
+charCounter.classList.remove('warn');
+await loadRecentLog();
+} catch(err){
+btn.disabled = false;
+btn.textContent = 'Send Message';
+statusEl.className = 'status-msg error';
+statusEl.textContent = 'Network error. Please try again.';
+}
+});
+
+// ---------- Recent log ----------
+async function loadRecentLog(){
+const { data } = await window.YellowRide.supabaseClient
+.from('sms_log').select('*').eq('purpose', 'admin_broadcast')
+.order('created_at', { ascending: false }).limit(25);
+
+const listEl = document.getElementById('log-list');
+if (!data || data.length === 0){
+listEl.innerHTML = `<div class="empty-state"><i class="fa-solid fa-paper-plane"></i><br>No messages sent yet.</div>`;
+return;
+}
+listEl.innerHTML = data.map(entry => `
+<div class="log-item">
+<div class="log-top">
+<span class="log-phone">${escapeHtml(entry.phone_number)}</span>
+<span class="pill ${entry.status}">${entry.status}</span>
+</div>
+<div class="log-msg">${escapeHtml(entry.message)}</div>
+<div class="log-time">${new Date(entry.created_at).toLocaleString()}</div>
+</div>`).join('');
+}
+
+function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
+</script>
+</body>
+</html>
