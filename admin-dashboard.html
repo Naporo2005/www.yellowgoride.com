@@ -419,7 +419,7 @@ margin-right: auto;
    hidden by default and only drops open when the menu button is tapped. */
 .nav-list{
 display: none;
-flex-direction: row;
+flex-direction: column;
 overflow-x: auto;
 -webkit-overflow-scrolling: touch;
 gap: 8px;
@@ -732,9 +732,13 @@ Client and server reports requiring review.
 Send manual SMS alerts directly to clients or servers.
 </p>
 <div class="messaging-card">
-<div class="messaging-icon"><i class="fa-solid fa-comment-sms"></i></div>
+<div class="messaging-icon">
+<i class="fa-solid fa-comment-sms"></i>
+</div>
 <h3>Send a message</h3>
-<p>Reach all clients, all servers, or a specific phone number with a one-off SMS — useful for announcements, service alerts, or following up on an individual account.</p>
+<p>
+Reach all clients, all servers, or a specific phone number with a one-off SMS — useful for announcements, service alerts, or following up on an individual account.
+</p>
 <a href="user-messaging.html" class="messaging-cta"><i class="fa-solid fa-paper-plane"></i> Open Messaging</a>
 </div>
 </div>
@@ -1064,12 +1068,12 @@ const isEnabled = setting.value?.enabled !== false;
 row.innerHTML = `
 <div><label>Daily fee required</label><div class="settings-desc">Turn off to let servers go online for free — useful while you're still building up drivers. Turn back on any time.</div></div>
 <label style="display:flex; align-items:center; gap:8px; cursor:pointer; flex-shrink:0;">
-  <span id="fee-toggle-label" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:${isEnabled ? 'var(--green)' : 'var(--rust)'};">${isEnabled ? 'ON' : 'OFF'}</span>
-  <input type="checkbox" data-key="daily_fee_enabled" data-field="enabled" data-toggle="true" ${isEnabled ? 'checked' : ''} style="width:38px; height:22px; accent-color:var(--green); cursor:pointer;" />
+<span id="fee-toggle-label" style="font-family:'JetBrains Mono',monospace; font-size:11.5px; color:${isEnabled ? 'var(--green)': 'var(--rust)'};">${isEnabled ? 'ON': 'OFF'}</span>
+<input type="checkbox" data-key="daily_fee_enabled" data-field="enabled" data-toggle="true" ${isEnabled ? 'checked': ''} style="width:38px; height:22px; accent-color:var(--green); cursor:pointer;" />
 </label>`;
 row.querySelector('input[type="checkbox"]').addEventListener('change', (e) => {
-row.querySelector('#fee-toggle-label').textContent = e.target.checked ? 'ON' : 'OFF';
-row.querySelector('#fee-toggle-label').style.color = e.target.checked ? 'var(--green)' : 'var(--rust)';
+row.querySelector('#fee-toggle-label').textContent = e.target.checked ? 'ON': 'OFF';
+row.querySelector('#fee-toggle-label').style.color = e.target.checked ? 'var(--green)': 'var(--rust)';
 });
 } else if (setting.key === 'driver_daily_fee'){
 row.innerHTML = `
@@ -1110,4 +1114,4 @@ statusEl.textContent = 'Settings saved.';
 }
 </script>
 </body>
-</html>
+  </html>
