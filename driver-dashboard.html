@@ -185,7 +185,7 @@
 
   <div class="top-tabs">
     <div class="top-tab active" data-view="rides">Rides</div>
-    <div class="top-tab" data-view="fee">Daily Fee</div>
+   <!---<div class="top-tab" data-view="fee">Daily Fee</div>--->
   </div>
 
   <!-- ============ RIDES VIEW ============ -->
@@ -195,7 +195,7 @@
         <div class="stats-row">
           <div class="stat-card"><div class="stat-label">TOTAL TRIPS</div><div class="stat-value" id="stat-trips">0</div></div>
           <div class="stat-card"><div class="stat-label">RATING</div><div class="stat-value" id="stat-rating">—</div></div>
-          <div class="stat-card"><div class="stat-label">TODAY'S FEE</div><div class="stat-value" id="stat-fee-status">—</div></div>
+          <div class="stat-card"><div class="stat-label">STATUS</div><div class="stat-value" id="stat-fee-status">—</div></div>
         </div>
 
         <div id="dashboard-body">
@@ -234,7 +234,8 @@
     <div class="fee-instructions">
       Send your daily fee via Mobile Money to:
       <div class="momo-number" id="momo-number">—</div>
-      Then enter the transaction reference below.
+      Then enter the transaction reference below.<br> Kindly use your Driver code as
+      reference.
     </div>
 
     <div class="field">
@@ -243,7 +244,7 @@
     </div>
     <div class="field">
       <label for="fee-reference">MoMo transaction reference</label>
-      <input type="text" id="fee-reference" placeholder="e.g. 8834920011" />
+      <input type="text" id="fee-reference" placeholder="e.g. YR-DRV-xxxx" />
     </div>
     <button class="btn-primary" id="submit-fee-btn">Submit Payment</button>
     <div id="fee-submit-status" style="font-size:13px; margin-top:10px;"></div>
@@ -305,6 +306,8 @@
     let rideChannelUnsubscribe = null;
     let locationWatchId = null;
     let map = null, selfMarker = null, pickupMarker = null, dropoffMarker = null;
+    let driverRouteLine = null;
+    let activeRideTarget = null; // { lat, lng } — where the colored line currently points: pickup, then dropoff once in progress
 
     (async function init(){
       currentProfile = await window.YellowRide.requireRole('driver');
@@ -474,6 +477,14 @@
         window.YellowRide.updateDriverLocation(currentProfile.id, latitude, longitude);
         if(selfMarker) selfMarker.setLatLng([latitude, longitude]);
         else { selfMarker = L.marker([latitude, longitude]).addTo(map); map.setView([latitude, longitude], 15); }
+
+        // Redraw the route line from the driver's current position to
+        // wherever they're currently headed (pickup, then dropoff once the
+        // trip is in progress) — so it stays accurate as the driver moves,
+        // instead of a single static line drawn once.
+        if(activeRideTarget){
+          driverRouteLine = drawRouteLine(map, driverRouteLine, [latitude, longitude], [activeRideTarget.lat, activeRideTarget.lng]);
+        }
       }, (err) => console.warn(err.message), { enableHighAccuracy:true, maximumAge:10000 });
     }
     function stopLocationSharing(){ if(locationWatchId !== null){ navigator.geolocation.clearWatch(locationWatchId); locationWatchId = null; } }
@@ -577,6 +588,24 @@
       if(dropoffMarker) map.removeLayer(dropoffMarker);
       if(ride.pickup_lat) pickupMarker = L.marker([ride.pickup_lat, ride.pickup_lng]).addTo(map);
       if(ride.dropoff_lat) dropoffMarker = L.marker([ride.dropoff_lat, ride.dropoff_lng]).addTo(map);
+
+      // Colored line target: head to the passenger first (accepted / arriving),
+      // then switch to the dropoff once the trip is actually in progress —
+      // so the line always points to wherever the driver needs to go next.
+      if(ride.status === 'in_progress' && ride.dropoff_lat){
+        activeRideTarget = { lat: ride.dropoff_lat, lng: ride.dropoff_lng };
+      } else if(ride.pickup_lat){
+        activeRideTarget = { lat: ride.pickup_lat, lng: ride.pickup_lng };
+      } else {
+        activeRideTarget = null;
+      }
+
+      // Draw immediately using the driver's last known position, rather than
+      // waiting for the next GPS tick (which could be up to ~10s away).
+      if(activeRideTarget && selfMarker){
+        const pos = selfMarker.getLatLng();
+        driverRouteLine = drawRouteLine(map, driverRouteLine, [pos.lat, pos.lng], [activeRideTarget.lat, activeRideTarget.lng]);
+      }
     }
 
     function renderTripActionButtons(ride, passengerPhone){
@@ -687,6 +716,8 @@
       if(activeRideId || incomingRideId) return;
       if(pickupMarker){ map.removeLayer(pickupMarker); pickupMarker = null; }
       if(dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
+      if(driverRouteLine){ map.removeLayer(driverRouteLine); driverRouteLine = null; }
+      activeRideTarget = null;
       document.getElementById('dashboard-body').innerHTML = isOnline
         ? `<div class="idle-state"><i class="fa-solid fa-satellite-dish"></i><p>You're online. Waiting for a ride request…</p></div>`
         : `<div class="idle-state"><i class="fa-solid fa-power-off"></i><p>You're offline. Go online to start receiving ride requests.</p></div>`;
