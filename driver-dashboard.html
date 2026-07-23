@@ -169,6 +169,7 @@
       <button class="toggle-switch" id="availability-switch" aria-label="Toggle online status"><span class="knob"></span></button>
     </div>
     <div class="nav-actions">
+      <button class="icon-btn" id="mute-btn" title="Mute ride request sound"><i class="fa-solid fa-volume-high" id="mute-icon"></i></button>
       <button class="icon-btn" id="notif-btn"><i class="fa-solid fa-bell"></i><span class="badge" id="notif-badge" style="display:none;"></span></button>
       <button class="avatar-btn" id="avatar-btn">--</button>
     </div>
@@ -185,7 +186,7 @@
 
   <div class="top-tabs">
     <div class="top-tab active" data-view="rides">Rides</div>
-   <!---<div class="top-tab" data-view="fee">Daily Fee</div>--->
+    <div class="top-tab" id="fee-tab" data-view="fee" style="display:none;">Daily Fee</div>
   </div>
 
   <!-- ============ RIDES VIEW ============ -->
@@ -244,7 +245,7 @@
     </div>
     <div class="field">
       <label for="fee-reference">MoMo transaction reference</label>
-      <input type="text" id="fee-reference" placeholder="e.g. YR-DRV-xxxx" />
+      <input type="text" id="fee-reference" placeholder="e.g. YR-DRV-XXXX" />
     </div>
     <button class="btn-primary" id="submit-fee-btn">Submit Payment</button>
     <div id="fee-submit-status" style="font-size:13px; margin-top:10px;"></div>
@@ -268,6 +269,10 @@
       </div>
     </div>
   </div>
+
+  <!-- Ride request alert sound — separate file from the passenger app's sound.
+       Loops until the driver accepts or declines the request. -->
+  <audio id="ride-request-sound" src="assets/sounds/driver-ride-alert.mp3" loop preload="auto"></audio>
 
   <script src="supabase-config.js"></script>
   <script src="maps-utils.js"></script>
@@ -320,6 +325,8 @@
 
       await loadDriverRecord();
       await loadDailyFeeToggle();
+      updateFeeTabVisibility();
+      subscribeToFeeSettingChanges();
       await refreshFeeStatus();
       renderBanners();
       renderStats();
@@ -328,6 +335,61 @@
       await checkForActiveTrip();
       await loadFeeHistory();
     })();
+
+    // ============ FEE TAB VISIBILITY (admin-controlled) ============
+    // Shows/hides the Daily Fee tab based on the platform_settings toggle,
+    // and updates live if the admin flips it while the driver is on this page.
+    function updateFeeTabVisibility(){
+      const feeTab = document.getElementById('fee-tab');
+      feeTab.style.display = dailyFeeEnabled ? '' : 'none';
+      // If fees just got turned off while the driver was sitting on that tab,
+      // snap them back to Rides so they're not stuck on a hidden view.
+      if(!dailyFeeEnabled && feeTab.classList.contains('active')){
+        feeTab.classList.remove('active');
+        document.getElementById('view-fee').classList.remove('active');
+        document.querySelector('.top-tab[data-view="rides"]').classList.add('active');
+        document.getElementById('view-rides').classList.add('active');
+      }
+    }
+
+    function subscribeToFeeSettingChanges(){
+      window.YellowRide.supabaseClient.channel('fee-setting-watch')
+        .on('postgres_changes', { event:'UPDATE', schema:'public', table:'platform_settings', filter:'key=eq.daily_fee_enabled' }, async (payload) => {
+          dailyFeeEnabled = payload.new?.value?.enabled !== false;
+          updateFeeTabVisibility();
+          await refreshFeeStatus();
+          renderBanners();
+        }).subscribe();
+    }
+
+    // ============ RIDE REQUEST SOUND + MUTE ============
+    let soundMuted = localStorage.getItem('yr_driver_sound_muted') === 'true';
+    updateMuteIcon();
+
+    document.getElementById('mute-btn').addEventListener('click', () => {
+      soundMuted = !soundMuted;
+      localStorage.setItem('yr_driver_sound_muted', soundMuted);
+      updateMuteIcon();
+      if(soundMuted) stopRequestSound();
+    });
+
+    function updateMuteIcon(){
+      const icon = document.getElementById('mute-icon');
+      icon.className = soundMuted ? 'fa-solid fa-volume-xmark' : 'fa-solid fa-volume-high';
+    }
+
+    function playRequestSound(){
+      if(soundMuted) return;
+      const audio = document.getElementById('ride-request-sound');
+      audio.currentTime = 0;
+      audio.play().catch(err => console.warn('Could not play ride alert sound:', err.message));
+      if(navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+    }
+    function stopRequestSound(){
+      const audio = document.getElementById('ride-request-sound');
+      audio.pause();
+      audio.currentTime = 0;
+    }
 
     function getInitials(name){ if(!name) return '--'; return name.split(' ').map(n=>n[0]).slice(0,2).join('').toUpperCase(); }
     function escapeHtml(str){ const div = document.createElement('div'); div.textContent = str || ''; return div.innerHTML; }
@@ -511,6 +573,7 @@
 
     function showIncomingRequest(ride){
       incomingRideId = ride.id;
+      playRequestSound();
       document.getElementById('dashboard-body').innerHTML = `
         <div class="request-card">
           <div class="request-card-top"><span>New Ride Request</span><span>${new Date(ride.requested_at).toLocaleTimeString()}</span></div>
@@ -525,7 +588,7 @@
           </div>
         </div>`;
       document.getElementById('accept-btn').addEventListener('click', () => acceptRide(ride.id));
-      document.getElementById('decline-btn').addEventListener('click', () => { incomingRideId = null; renderIdleOrRequest(); });
+      document.getElementById('decline-btn').addEventListener('click', () => { stopRequestSound(); incomingRideId = null; renderIdleOrRequest(); });
     }
 
     // Inserts a row into `notifications` for the passenger on this ride.
@@ -544,6 +607,7 @@
     }
 
     async function acceptRide(rideId){
+      stopRequestSound();
       const { data, error } = await window.YellowRide.supabaseClient.from('rides')
         .update({ driver_id: currentProfile.id, status: 'accepted', accepted_at: new Date().toISOString() })
         .eq('id', rideId).eq('status', 'requested').select().single();
