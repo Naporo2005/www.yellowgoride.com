@@ -533,10 +533,25 @@
       label.textContent = isOnline ? 'ONLINE' : 'OFFLINE';
     }
 
+    // ============ LOCATION SHARING (GPS accuracy fix applied) ============
+    // Changes from the previous version:
+    //   - maximumAge: 0   -> forces a fresh GPS fix every update instead of
+    //                        allowing a cached fix up to 10s old
+    //   - timeout: 15000  -> avoids the watch silently hanging if a fix takes too long
+    //   - accuracy filter -> skips any GPS reading worse than 60m, so a bad
+    //                        fix (common indoors / dense areas) never gets
+    //                        written to the database or shown on the map
     function startLocationSharing(){
       if(!navigator.geolocation) return;
       locationWatchId = navigator.geolocation.watchPosition((pos) => {
-        const { latitude, longitude } = pos.coords;
+        const { latitude, longitude, accuracy } = pos.coords;
+
+        // Skip GPS fixes that are too imprecise to be useful (bad signal / indoors)
+        if (accuracy && accuracy > 60) {
+          console.warn('Skipping low-accuracy fix:', accuracy, 'm');
+          return;
+        }
+
         window.YellowRide.updateDriverLocation(currentProfile.id, latitude, longitude);
         if(selfMarker) selfMarker.setLatLng([latitude, longitude]);
         else { selfMarker = L.marker([latitude, longitude]).addTo(map); map.setView([latitude, longitude], 15); }
@@ -548,7 +563,7 @@
         if(activeRideTarget){
           driverRouteLine = drawRouteLine(map, driverRouteLine, [latitude, longitude], [activeRideTarget.lat, activeRideTarget.lng]);
         }
-      }, (err) => console.warn(err.message), { enableHighAccuracy:true, maximumAge:10000 });
+      }, (err) => console.warn(err.message), { enableHighAccuracy:true, maximumAge:0, timeout:15000 });
     }
     function stopLocationSharing(){ if(locationWatchId !== null){ navigator.geolocation.clearWatch(locationWatchId); locationWatchId = null; } }
 
