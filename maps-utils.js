@@ -58,6 +58,33 @@ const YR_ICONS = {
 };
 
 /**
+ * Builds a short, human-friendly address like "Zagyuli, Sagnarigu, Northern Region"
+ * from Nominatim's structured address components — drops "Municipal District",
+ * "Ghana", postal codes, etc. Shared by both reverse geocoding (pickup) and
+ * forward geocoding (dropoff search), so the whole app shows consistent,
+ * trimmed location names everywhere (ride history, driver request cards,
+ * notifications all just display whatever gets stored/shown at this point).
+ * @param {Object} addr - the `address` object from a Nominatim jsonv2 response
+ * @returns {string|null}
+ */
+function buildShortAddress(addr) {
+  if (!addr) return null;
+
+  const place = addr.village || addr.suburb || addr.town || addr.neighbourhood || addr.hamlet || addr.road;
+  const district = (addr.county || addr.municipality || addr.city_district || '')
+    .replace(/\s*Municipal District\s*/i, '')
+    .replace(/\s*District\s*/i, '')
+    .trim();
+  const region = (addr.state || '').trim();
+
+  const parts = [place, district, region].filter(Boolean);
+  // Dedupe consecutive identical parts (e.g. place === district sometimes)
+  const deduped = parts.filter((p, i) => i === 0 || p.toLowerCase() !== parts[i - 1].toLowerCase());
+
+  return deduped.length ? deduped.join(', ') : null;
+}
+
+/**
  * Search for an address and return candidate matches with lat/lng.
  * Biased toward Ghana. Debounce calls to this by ~400ms in your input handler.
  * @param {string} query
@@ -66,7 +93,7 @@ const YR_ICONS = {
 async function geocodeAddress(query) {
   if (!query || query.trim().length < 3) return [];
 
-  const url = `${NOMINATIM_BASE}/search?format=json&limit=5&countrycodes=gh&q=${encodeURIComponent(query)}`;
+  const url = `${NOMINATIM_BASE}/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=gh&q=${encodeURIComponent(query)}`;
 
   try {
     const res = await fetch(url, {
@@ -75,7 +102,7 @@ async function geocodeAddress(query) {
     if (!res.ok) return [];
     const data = await res.json();
     return data.map(r => ({
-      label: r.display_name,
+      label: buildShortAddress(r.address) || r.display_name,
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
     }));
