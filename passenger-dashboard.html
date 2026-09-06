@@ -751,13 +751,18 @@ document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
 });
 
 // ============ PICKUP: AUTO-DETECTED CURRENT LOCATION ============
+// Uses jsonv2 + addressdetails so buildShortAddress() (shared from
+// maps-utils.js) can trim this down to e.g. "Zagyuli, Sagnarigu, Northern
+// Region" instead of the full "Zagyuli, Sagnarigu Municipal District,
+// Northern Region, Ghana" that Nominatim returns by default.
 async function reverseGeocode(lat, lng){
 try{
-const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`;
+const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lng}`;
 const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
 if (!res.ok) return null;
 const data = await res.json();
-return data?.display_name || null;
+if (!data?.address) return data?.display_name || null;
+return buildShortAddress(data.address);
 } catch(err){
 console.warn('Reverse geocode failed', err);
 return null;
