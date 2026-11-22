@@ -612,7 +612,7 @@ We use your current location so your driver knows exactly where to meet you.
 </div>
 
 <div class="field-hint" style="font-size:11.5px; color:var(--muted); margin-top:-8px; margin-bottom:14px;">
-Not listed? Just type it and tap Request Ride — we'll pass your typed address straight to the driver even without an exact map match.
+Not listed? Type it and tap Request Ride — we'll show the closest match on the map to confirm. If there's no match, your typed address goes straight to the driver.
 </div>
 
 <div class="distance-note">
@@ -756,17 +756,39 @@ document.getElementById('panel-' + btn.dataset.panel).classList.add('active');
 // Region" instead of the full "Zagyuli, Sagnarigu Municipal District,
 // Northern Region, Ghana" that Nominatim returns by default.
 async function reverseGeocode(lat, lng){
-try{
-const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lng}`;
-const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-if (!res.ok) return null;
-const data = await res.json();
-if (!data?.address) return data?.display_name || null;
-return buildShortAddress(data.address);
-} catch(err){
-console.warn('Reverse geocode failed', err);
-return null;
+return await reverseGeocodeGeo(lat, lng);
 }
+
+// Draggable pins: passengers can fine-tune pickup / drop-off by dragging.
+function makePickupMarker(lat, lng){
+const m = L.marker([lat, lng], { icon: YR_ICONS.pickup, draggable: true, autoPan: true }).addTo(map);
+m.on('dragend', async () => {
+const p = m.getLatLng();
+pickupCoords = { lat: p.lat, lng: p.lng };
+const textEl = document.getElementById('pickup-text');
+const hintEl = document.getElementById('pickup-hint');
+textEl.textContent = 'Updating pickup…';
+const address = await reverseGeocode(p.lat, p.lng);
+pickupAddressText = address || `Pinned location (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`;
+textEl.textContent = pickupAddressText;
+textEl.classList.remove('placeholder');
+hintEl.textContent = 'Pickup set to the spot you dragged the pin to.';
+recalcRoute();
+renderPopularChips();
+});
+return m;
+}
+
+function makeDropoffMarker(lat, lng){
+const m = L.marker([lat, lng], { icon: YR_ICONS.dropoff, draggable: true, autoPan: true }).addTo(map);
+m.on('dragend', async () => {
+const p = m.getLatLng();
+dropoffCoords = { lat: p.lat, lng: p.lng };
+recalcRoute();
+const address = await reverseGeocode(p.lat, p.lng);
+dropoffInput.value = address || `Pinned location (${p.lat.toFixed(5)}, ${p.lng.toFixed(5)})`;
+});
+return m;
 }
 
 function detectPickupLocation(){
@@ -785,12 +807,14 @@ refreshBtn.classList.add('spinning');
 textEl.textContent = 'Detecting your location…';
 textEl.classList.add('placeholder');
 
-navigator.geolocation.getCurrentPosition(async (pos) => {
+const onPos = async (pos) => {
 const { latitude, longitude } = pos.coords;
 pickupCoords = { lat: latitude, lng: longitude };
+const manualWrap = document.getElementById('pickup-manual-wrap');
+if (manualWrap) manualWrap.remove();
 
 if (pickupMarker) map.removeLayer(pickupMarker);
-pickupMarker = L.marker([latitude, longitude], { icon: YR_ICONS.pickup }).addTo(map);
+pickupMarker = makePickupMarker(latitude, longitude);
 map.setView([latitude, longitude], 15);
 
 const address = await reverseGeocode(latitude, longitude);
@@ -798,16 +822,24 @@ pickupAddressText = address || `Current location (${latitude.toFixed(5)}, ${long
 
 textEl.textContent = pickupAddressText;
 textEl.classList.remove('placeholder');
-hintEl.textContent = 'This is your current GPS location.';
+hintEl.textContent = 'This is your current GPS location. Drag the yellow pin to adjust.';
 refreshBtn.classList.remove('spinning');
 recalcRoute();
 renderPopularChips(); // re-sort suggested places now that we know where the passenger is
-}, (err) => {
+};
+const onFail = (err) => {
 console.warn('Geolocation error:', err.message);
 refreshBtn.classList.remove('spinning');
-textEl.textContent = "Couldn't detect your location — enter it manually below.";
+textEl.textContent = err.code === 1
+? "Location is blocked for this site. Allow location in your browser settings, or enter your pickup below."
+: "Couldn't detect your location — enter it manually below.";
 textEl.classList.remove('placeholder');
 showManualPickupFallback();
+};
+navigator.geolocation.getCurrentPosition(onPos, (err) => {
+if (err.code === 1) return onFail(err);
+// GPS often times out indoors: retry once with network/Wi-Fi location
+navigator.geolocation.getCurrentPosition(onPos, onFail, { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
 }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 });
 }
 
@@ -817,7 +849,9 @@ function showManualPickupFallback(){
 const container = document.querySelector('#request-form-block .field:first-of-type');
 if (document.getElementById('pickup-manual-input')) return; // already added
 const manualField = document.createElement('div');
+manualField.id = 'pickup-manual-wrap';
 manualField.style.marginTop = '10px';
+manualField.style.position = 'relative';
 manualField.innerHTML = `
 <div class="input-with-icon">
 <i class="fa-solid fa-circle-dot" style="color:var(--yellow);"></i>
@@ -834,7 +868,8 @@ pickupAddressText = result.label;
 document.getElementById('pickup-text').textContent = result.label;
 document.getElementById('pickup-text').classList.remove('placeholder');
 if (pickupMarker) map.removeLayer(pickupMarker);
-pickupMarker = L.marker([pickupCoords.lat, pickupCoords.lng], { icon: YR_ICONS.pickup }).addTo(map);
+pickupMarker = makePickupMarker(pickupCoords.lat, pickupCoords.lng);
+map.setView([pickupCoords.lat, pickupCoords.lng], 16);
 recalcRoute();
 renderPopularChips(); // re-sort suggested places now that we know where the passenger is
 });
@@ -916,8 +951,9 @@ selectDropoff(results[i]);
 function selectDropoff(result){
 dropoffCoords = { lat: result.lat, lng: result.lng };
 if (dropoffMarker) map.removeLayer(dropoffMarker);
-dropoffMarker = L.marker([dropoffCoords.lat, dropoffCoords.lng], { icon: YR_ICONS.dropoff }).addTo(map);
+dropoffMarker = makeDropoffMarker(dropoffCoords.lat, dropoffCoords.lng);
 recalcRoute();
+if (!pickupCoords) map.setView([dropoffCoords.lat, dropoffCoords.lng], 16);
 }
 
 // If the passenger edits the dropoff text after selecting a match, the old
@@ -931,13 +967,17 @@ if (dropoffMarker){ map.removeLayer(dropoffMarker); dropoffMarker = null; }
 });
 
 function setupAddressAutocomplete(){
-attachAddressAutocomplete(dropoffInput, document.getElementById('dropoff-dropdown'), selectDropoff);
+attachAddressAutocomplete(dropoffInput, document.getElementById('dropoff-dropdown'), selectDropoff, () => pickupCoords);
 renderPopularChips();
 }
 
 function recalcRoute(){
 if (pickupCoords && dropoffCoords){
-routeLine = drawRouteLine(map, routeLine, [pickupCoords.lat, pickupCoords.lng], [dropoffCoords.lat, dropoffCoords.lng]);
+routeLine = drawRouteLine(map, routeLine, [pickupCoords.lat, pickupCoords.lng], [dropoffCoords.lat, dropoffCoords.lng], (r) => {
+if (!pickupCoords || !dropoffCoords) return;
+currentDistanceKm = r.km;
+document.getElementById('distance-value').textContent = `${r.km.toFixed(1)} km by road`;
+});
 currentDistanceKm = distanceKm(pickupCoords.lat, pickupCoords.lng, dropoffCoords.lat, dropoffCoords.lng);
 document.getElementById('distance-value').textContent = `~${currentDistanceKm.toFixed(1)} km`;
 } else {
@@ -1011,9 +1051,15 @@ btn.disabled = true; btn.textContent = 'Requesting…';
 // submit. If that also finds nothing, still submit with the typed text
 // and null coordinates — the driver still sees the address in plain text.
 if (!dropoffCoords){
-const matches = await geocodeAddress(`${dropoffTyped}, Tamale, Ghana`);
+const matches = await geocodeAddress(dropoffTyped, pickupCoords);
 if (matches.length > 0){
+// Show exactly where we think they mean and let them confirm or drag the pin
 selectDropoff(matches[0]);
+dropoffInput.value = matches[0].label;
+statusEl.style.color = 'var(--green)';
+statusEl.textContent = `We placed your drop-off at "${matches[0].label}". Drag the green pin if it's wrong, then tap Request Ride again.`;
+btn.disabled = false; btn.textContent = 'Request Ride';
+return;
 }
 }
 
