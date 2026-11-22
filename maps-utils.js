@@ -1,10 +1,16 @@
 // =========================================================
 // YellowRide — maps-utils.js
-// Leaflet + OpenStreetMap integration (free, no API key required)
+// Leaflet + Geoapify (map tiles, place search, reverse geocoding, road routes)
 // Load AFTER supabase-config.js and AFTER the Leaflet CDN script/CSS in your HTML:
 //   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 //   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+//
+// The API key below is public by design (it sits in browser code), so lock it to
+// your domain in the Geoapify dashboard: yellowgoride.netlify.app
 // =========================================================
+
+const GEOAPIFY_KEY = 'a5ffc7a3b15841d19da8b593564165dd';
+const GEOAPIFY_BASE = 'https://api.geoapify.com';
 
 const YR_MAP_DEFAULTS = {
   centerLat: 9.4008,   // Tamale, Ghana
@@ -12,13 +18,10 @@ const YR_MAP_DEFAULTS = {
   zoom: 14,
 };
 
-// Nominatim (OpenStreetMap's free geocoding service). Rate-limited to ~1 req/sec —
-// debounce address search input before calling this.
-const NOMINATIM_BASE = "https://nominatim.openstreetmap.org";
-
 /**
  * Create a Leaflet map inside the given container element ID.
- * Returns the map instance.
+ * Uses Geoapify tiles; if they keep failing (bad key, quota used up) it
+ * quietly switches to the standard OpenStreetMap tiles so the map never goes blank.
  */
 function createMap(containerId, opts = {}) {
   const lat = opts.centerLat ?? YR_MAP_DEFAULTS.centerLat;
@@ -27,27 +30,49 @@ function createMap(containerId, opts = {}) {
 
   const map = L.map(containerId, { zoomControl: true }).setView([lat, lng], zoom);
 
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors',
-    maxZoom: 19,
-  }).addTo(map);
+  const geoTiles = L.tileLayer(
+    `https://maps.geoapify.com/v1/tile/osm-bright/{z}/{x}/{y}.png?apiKey=${GEOAPIFY_KEY}`,
+    {
+      attribution:
+        'Powered by <a href="https://www.geoapify.com/" target="_blank" rel="noopener">Geoapify</a> | ' +
+        '© <a href="https://openmaptiles.org/" target="_blank" rel="noopener">OpenMapTiles</a> ' +
+        '© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors',
+      maxZoom: 19,
+    }
+  ).addTo(map);
+
+  let tileErrors = 0;
+  let fellBack = false;
+  geoTiles.on('tileerror', () => {
+    tileErrors++;
+    if (fellBack || tileErrors < 6) return;
+    fellBack = true;
+    map.removeLayer(geoTiles);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19,
+    }).addTo(map);
+  });
 
   return map;
 }
 
 /**
  * Custom colored marker icons matching the YellowRide brand.
+ * The visible dot is 16px, but the touch area is 36px so pins are easy to drag on a phone.
  */
 function makeIcon(color) {
   return L.divIcon({
     className: 'yr-marker',
-    html: `<div style="
-      width:16px;height:16px;border-radius:50%;
-      background:${color};border:2.5px solid #161512;
-      box-shadow:0 1px 4px rgba(0,0,0,0.3);
-    "></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8],
+    html: `<div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+      <div style="
+        width:16px;height:16px;border-radius:50%;
+        background:${color};border:2.5px solid #161512;
+        box-shadow:0 1px 4px rgba(0,0,0,0.3);
+      "></div>
+    </div>`,
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
   });
 }
 
@@ -58,14 +83,7 @@ const YR_ICONS = {
 };
 
 /**
- * Builds a short, human-friendly address like "Zagyuli, Sagnarigu, Northern Region"
- * from Nominatim's structured address components — drops "Municipal District",
- * "Ghana", postal codes, etc. Shared by both reverse geocoding (pickup) and
- * forward geocoding (dropoff search), so the whole app shows consistent,
- * trimmed location names everywhere (ride history, driver request cards,
- * notifications all just display whatever gets stored/shown at this point).
- * @param {Object} addr - the `address` object from a Nominatim jsonv2 response
- * @returns {string|null}
+ * Kept for compatibility (older Nominatim-style address objects).
  */
 function buildShortAddress(addr) {
   if (!addr) return null;
@@ -78,34 +96,95 @@ function buildShortAddress(addr) {
   const region = (addr.state || '').trim();
 
   const parts = [place, district, region].filter(Boolean);
-  // Dedupe consecutive identical parts (e.g. place === district sometimes)
   const deduped = parts.filter((p, i) => i === 0 || p.toLowerCase() !== parts[i - 1].toLowerCase());
 
   return deduped.length ? deduped.join(', ') : null;
 }
 
 /**
- * Search for an address and return candidate matches with lat/lng.
- * Biased toward Ghana. Debounce calls to this by ~400ms in your input handler.
- * @param {string} query
- * @returns {Promise<Array<{label: string, lat: number, lng: number}>>}
+ * Builds a short label like "Tamale Central Market, Sagnarigu, Northern Region"
+ * from a Geoapify result object.
  */
-async function geocodeAddress(query) {
-  if (!query || query.trim().length < 3) return [];
+function buildShortAddressGeo(r) {
+  if (!r) return null;
 
-  const url = `${NOMINATIM_BASE}/search?format=jsonv2&addressdetails=1&limit=5&countrycodes=gh&q=${encodeURIComponent(query)}`;
+  const clean = (s) => (s || '')
+    .replace(/\s*Municipal District\s*/i, '')
+    .replace(/\s*Municipality\s*/i, '')
+    .replace(/\s*District\s*/i, '')
+    .trim();
+
+  const first = r.name || r.street || r.suburb || r.address_line1;
+  const second = clean(r.suburb || r.district || r.city || r.county);
+  const third = (r.state || '').trim();
+
+  const seen = new Set();
+  const parts = [first, second, third].filter((p) => {
+    if (!p) return false;
+    const k = p.toLowerCase();
+    if (seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  });
+
+  return parts.length ? parts.join(', ') : (r.formatted || null);
+}
+
+// Remember recent searches so repeat typing doesn't use up the daily free limit.
+const _geoSearchCache = new Map();
+
+function _escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str == null ? '' : String(str);
+  return div.innerHTML;
+}
+
+function _formatDist(km) {
+  if (km == null) return '';
+  return km < 1 ? `${Math.round(km * 1000)} m` : `${km.toFixed(1)} km`;
+}
+
+/**
+ * Search for a place and return candidate matches with lat/lng.
+ * Limited to Ghana and ranked closer to `near` ({lat, lng}, e.g. the passenger's
+ * pickup) or to Tamale if not given. Matches more than 100 km away are hidden
+ * unless nothing closer exists. Each result also carries distKm so the
+ * dropdown can show how far away it is.
+ * @returns {Promise<Array<{label: string, lat: number, lng: number, distKm: number}>>}
+ */
+async function geocodeAddress(query, near) {
+  const q = (query || '').trim();
+  if (q.length < 3) return [];
+
+  const ref = near && typeof near.lat === 'number' && typeof near.lng === 'number'
+    ? near
+    : { lat: YR_MAP_DEFAULTS.centerLat, lng: YR_MAP_DEFAULTS.centerLng };
+
+  const cacheKey = `${q.toLowerCase()}|${ref.lat.toFixed(2)},${ref.lng.toFixed(2)}`;
+  if (_geoSearchCache.has(cacheKey)) return _geoSearchCache.get(cacheKey);
+
+  const url =
+    `${GEOAPIFY_BASE}/v1/geocode/autocomplete?text=${encodeURIComponent(q)}` +
+    `&filter=countrycode:gh` +
+    `&bias=proximity:${ref.lng},${ref.lat}` +
+    `&limit=8&lang=en&format=json&apiKey=${GEOAPIFY_KEY}`;
 
   try {
-    const res = await fetch(url, {
-      headers: { 'Accept-Language': 'en' },
-    });
+    const res = await fetch(url);
     if (!res.ok) return [];
     const data = await res.json();
-    return data.map(r => ({
-      label: buildShortAddress(r.address) || r.display_name,
-      lat: parseFloat(r.lat),
-      lng: parseFloat(r.lon),
-    }));
+    const all = (data.results || [])
+      .filter((r) => typeof r.lat === 'number' && typeof r.lon === 'number')
+      .map((r) => ({
+        label: buildShortAddressGeo(r) || r.formatted,
+        lat: r.lat,
+        lng: r.lon,
+        distKm: distanceKm(ref.lat, ref.lng, r.lat, r.lon),
+      }));
+    const close = all.filter((r) => r.distKm <= 100);
+    const results = (close.length ? close : all).slice(0, 5);
+    if (results.length) _geoSearchCache.set(cacheKey, results);
+    return results;
   } catch (err) {
     console.error('Geocoding error:', err);
     return [];
@@ -113,22 +192,38 @@ async function geocodeAddress(query) {
 }
 
 /**
+ * Turn a lat/lng (for example a dragged pin) into a short address label.
+ * @returns {Promise<string|null>}
+ */
+async function reverseGeocodeGeo(lat, lng) {
+  const url =
+    `${GEOAPIFY_BASE}/v1/geocode/reverse?lat=${lat}&lon=${lng}` +
+    `&lang=en&format=json&apiKey=${GEOAPIFY_KEY}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    return buildShortAddressGeo((data.results || [])[0]);
+  } catch (err) {
+    console.warn('Reverse geocode failed', err);
+    return null;
+  }
+}
+
+/**
  * Attach autocomplete behavior to a text input: shows a dropdown of
  * geocode matches, and calls onSelect({label, lat, lng}) when one is chosen.
- * @param {HTMLInputElement} inputEl
- * @param {HTMLElement} dropdownEl - an empty container positioned under the input
- * @param {(result: {label:string, lat:number, lng:number}) => void} onSelect
  */
-function attachAddressAutocomplete(inputEl, dropdownEl, onSelect) {
+function attachAddressAutocomplete(inputEl, dropdownEl, onSelect, getNear) {
   let debounceTimer = null;
 
   inputEl.addEventListener('input', () => {
     clearTimeout(debounceTimer);
     const query = inputEl.value;
     debounceTimer = setTimeout(async () => {
-      const results = await geocodeAddress(query);
+      const results = await geocodeAddress(query, getNear ? getNear() : null);
       renderDropdown(results);
-    }, 450);
+    }, 500);
   });
 
   function renderDropdown(results) {
@@ -138,7 +233,7 @@ function attachAddressAutocomplete(inputEl, dropdownEl, onSelect) {
       return;
     }
     dropdownEl.innerHTML = results.map((r, i) => `
-      <div class="yr-autocomplete-item" data-idx="${i}">${r.label}</div>
+      <div class="yr-autocomplete-item" data-idx="${i}">${_escapeHtml(r.label)}<span style="color:#8a8577;font-size:11px;margin-left:8px;">${_formatDist(r.distKm)}</span></div>
     `).join('');
     dropdownEl.style.display = 'block';
 
@@ -152,7 +247,6 @@ function attachAddressAutocomplete(inputEl, dropdownEl, onSelect) {
     });
   }
 
-  // Hide dropdown when clicking elsewhere
   document.addEventListener('click', (e) => {
     if (e.target !== inputEl && !dropdownEl.contains(e.target)) {
       dropdownEl.style.display = 'none';
@@ -161,7 +255,7 @@ function attachAddressAutocomplete(inputEl, dropdownEl, onSelect) {
 }
 
 /**
- * Haversine distance between two lat/lng points, in kilometers.
+ * Haversine (straight-line) distance between two lat/lng points, in kilometers.
  */
 function distanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -178,7 +272,7 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 
 /**
  * Calculate an estimated fare from distance, using live rates from platform_settings.
- * Falls back to sane defaults if settings can't be fetched.
+ * (Unchanged. The app currently doesn't show fares.)
  */
 async function estimateFare(distanceKmValue) {
   let baseFare = 5.0;
@@ -205,11 +299,54 @@ async function estimateFare(distanceKmValue) {
 }
 
 /**
- * Draw or update a route line between two points (straight line — for real
- * road-following routes you'd need a routing API like OSRM, which is out of
- * scope for the free Nominatim/Leaflet setup but can be added later).
+ * Ask Geoapify for the road route between two [lat, lng] points.
+ * Returns { coords: [[lat,lng],...], km, minutes } or null if it fails.
  */
-function drawRouteLine(map, existingLine, pickupLatLng, dropoffLatLng) {
+async function fetchRoadRoute(fromLatLng, toLatLng) {
+  const url =
+    `${GEOAPIFY_BASE}/v1/routing?waypoints=${fromLatLng[0]},${fromLatLng[1]}|${toLatLng[0]},${toLatLng[1]}` +
+    `&mode=drive&apiKey=${GEOAPIFY_KEY}`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    const data = await res.json();
+    const feature = data.features && data.features[0];
+    if (!feature || !feature.geometry) return null;
+
+    const g = feature.geometry;
+    const lonLat = g.type === 'MultiLineString' ? g.coordinates.flat() : g.coordinates;
+    const coords = lonLat.map(([lng, lat]) => [lat, lng]);
+    if (coords.length < 2) return null;
+
+    return {
+      coords,
+      km: (feature.properties.distance || 0) / 1000,
+      minutes: Math.max(1, Math.round((feature.properties.time || 0) / 60)),
+    };
+  } catch (err) {
+    console.warn('Road routing failed, keeping straight line.', err);
+    return null;
+  }
+}
+
+function _applyRoadRoute(map, line, route, from, to, onRoute, refit) {
+  line.setLatLngs([from, ...route.coords, to]);
+  line.setStyle({ dashArray: null, weight: 4 });
+  if (refit) map.fitBounds(line.getBounds(), { padding: [40, 40] });
+  if (onRoute) onRoute({ km: route.km, minutes: route.minutes });
+}
+
+/**
+ * Draw or update a route line between two points.
+ * Shows a straight dashed line right away, then swaps it for the real road
+ * route when it arrives. If routing fails, the straight line simply stays.
+ * Same signature as before; the optional 5th argument onRoute({km, minutes})
+ * is called when the road route is ready.
+ *
+ * To protect the free daily limit, a moving driver re-uses the last road route
+ * for up to 20 seconds unless they have moved more than 100 m.
+ */
+function drawRouteLine(map, existingLine, pickupLatLng, dropoffLatLng, onRoute) {
   if (existingLine) map.removeLayer(existingLine);
   const line = L.polyline([pickupLatLng, dropoffLatLng], {
     color: '#0B6E4F',
@@ -217,6 +354,29 @@ function drawRouteLine(map, existingLine, pickupLatLng, dropoffLatLng) {
     dashArray: '6 8',
   }).addTo(map);
   map.fitBounds(line.getBounds(), { padding: [40, 40] });
+
+  const last = map._yrLastRoute;
+  const sameDestination =
+    last &&
+    Math.abs(last.to[0] - dropoffLatLng[0]) < 1e-5 &&
+    Math.abs(last.to[1] - dropoffLatLng[1]) < 1e-5;
+  const movedKm = last
+    ? distanceKm(last.from[0], last.from[1], pickupLatLng[0], pickupLatLng[1])
+    : Infinity;
+
+  if (sameDestination && movedKm < 0.1 && Date.now() - last.time < 20000) {
+    _applyRoadRoute(map, line, last.route, pickupLatLng, dropoffLatLng, onRoute, false);
+    return line;
+  }
+
+  fetchRoadRoute(pickupLatLng, dropoffLatLng).then((route) => {
+    if (!route) return;
+    map._yrLastRoute = { from: pickupLatLng, to: dropoffLatLng, time: Date.now(), route };
+    if (map.hasLayer(line)) {
+      _applyRoadRoute(map, line, route, pickupLatLng, dropoffLatLng, onRoute, true);
+    }
+  });
+
   return line;
 }
 
